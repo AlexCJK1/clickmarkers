@@ -1,0 +1,65 @@
+{
+ "name": "Nightdesk",
+ "business": "Larkspur Cleaning Co.",
+ "host": "127.0.0.1",
+ "port": 4600,
+ "timezone": "Europe/London",
+ "brain": "",
+ "company": "company/company.json",
+ "routines": "company/routines.json",
+ "connectors": "company/connectors.json",
+ "data": "data",
+ "secretsFile": "",
+ "fx": {
+  "gbpPerUsd": 0.75
+ },
+ "ledger": {
+  "ceilingUsd": 13,
+  "perRunUsd": 1.0,
+  "defaultAgentUsd": 2.0
+ },
+ "lanes": {
+  "apiCooldownMin": 30,
+  "claudePath": "",
+  "maxTurns": 40
+ },
+ "notes": {
+  "business": 4000,
+  "each": 10000,
+  "n": 6,
+  "inboxEach": 4000
+ },
+ "heartbeat": {
+  "everySec": 15,
+  "maxParallel": 2
+ },
+ "routing": {
+  "model": "sonnet"
+ },
+ "batch": {
+  "minItems": 3,
+  "maxWaitMin": 20
+ },
+ "telegram": {
+  "enabled": true,
+  "hello": true,
+  "routines": true,
+  "transcribe": "local"
+ },
+ "media": {
+  "roots": []
+ },
+ "files": {
+  "roots": []
+ },
+ "brainWritable": [
+  "00-Meta/numbers-ledger.md",
+  "00-Meta/log.md",
+  "60-Accounts/open-items.md"
+ ],
+ "workflows": "company/workflows.json",
+ "google": {
+  "account": "",
+  "callbackPort": 8765
+ }
+}

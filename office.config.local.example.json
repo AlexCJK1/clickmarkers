@@ -1,0 +1,8 @@
+{
+ "brain": "examples/brain",
+ "secretsFile": ".secrets.local",
+ "media": { "roots": ["examples/brain"] },
+ "files": { "roots": ["examples/brain"] },
+ "google": { "account": "" },
+ "ledger": { "ceilingUsd": 13, "perRunUsd": 1.0, "defaultAgentUsd": 2.0 }
+}

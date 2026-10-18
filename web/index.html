@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nightdesk</title>
+<style>
+  :root { --walnut:#2b2017; --oak:#4a3626; --brass:#c9a35b; --cream:#efe6d4; --ink:#1a1410; --smoke:#8c8073; --felt:#1f3a2e; --red:#a3352c; --amber:#d99a2b; --green:#5f9e6e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--walnut); color:var(--cream); font: 14px/1.45 Georgia, "Times New Roman", serif; }
+  header { display:flex; align-items:center; gap:18px; padding:10px 18px; background:linear-gradient(#3a2a1d,#2b2017); border-bottom:2px solid var(--brass); position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+  header h1 { font: 700 20px/1 Georgia, serif; letter-spacing:.12em; color:var(--brass); margin:0; text-transform:uppercase; }
+  header .sub { color:var(--smoke); font-size:12px; letter-spacing:.08em; }
+  .meter { min-width:220px; }
+  .meter .bar { height:8px; background:#17110c; border:1px solid #5a4330; border-radius:4px; overflow:hidden; }
+  .meter .bar i { display:block; height:100%; background:var(--brass); width:0; transition:width .4s; }
+  .meter small { color:var(--smoke); font-size:11px; }
+  .pill { display:inline-block; padding:2px 8px; border:1px solid var(--brass); border-radius:10px; font-size:11px; letter-spacing:.06em; color:var(--brass); }
+  .pill.off { border-color:var(--red); color:var(--red); }
+  main { display:grid; grid-template-columns: 300px 1fr 360px; gap:14px; padding:14px 18px; }
+  section { background:#231a12; border:1px solid #4a3626; border-radius:6px; padding:10px 12px; min-height:200px; }
+  section h2 { margin:0 0 8px; font: 600 12px/1 Georgia, serif; letter-spacing:.14em; text-transform:uppercase; color:var(--brass); border-bottom:1px solid #4a3626; padding-bottom:6px; }
+  .dept { margin:8px 0 12px; }
+  .dept b { display:block; color:var(--cream); font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:4px; }
+  .desk { display:flex; align-items:center; gap:8px; padding:3px 4px; border-radius:4px; cursor:pointer; }
+  .desk:hover { background:#2f2419; }
+  .desk .dot { width:9px; height:9px; border-radius:50%; background:#5a4a3a; flex:none; }
+  .desk.working .dot { background:var(--amber); box-shadow:0 0 8px var(--amber); animation:pulse 1s infinite alternate; }
+  .desk.waiting .dot { background:var(--red); }
+  .desk.paused .dot { background:#333; border:1px solid var(--smoke); }
+  .desk .name { font-size:12px; letter-spacing:.04em; }
+  .desk .role { color:var(--smoke); font-size:11px; margin-left:auto; text-align:right; }
+  .desk.lead .name { color:var(--brass); }
+  @keyframes pulse { from { opacity:.6 } to { opacity:1 } }
+  .cols { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+  .col h3 { margin:0 0 6px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--smoke); }
+  .card { background:#2d2217; border:1px solid #4a3626; border-left:3px solid var(--brass); border-radius:4px; padding:6px 8px; margin-bottom:6px; cursor:pointer; }
+  .card.waiting { border-left-color:var(--red); }
+  .card.failed { border-left-color:#666; }
+  .card.done { border-left-color:var(--green); }
+  .card .t { font-size:13px; }
+  .card .m { color:var(--smoke); font-size:11px; margin-top:2px; }
+  .jobbox { display:flex; gap:8px; margin-bottom:12px; }
+  .jobbox input, .jobbox select, .jobbox button, textarea, #detail button { font:inherit; }
+  .jobbox input { flex:1; background:#17110c; color:var(--cream); border:1px solid #5a4330; border-radius:4px; padding:8px 10px; }
+  .jobbox select { background:#17110c; color:var(--cream); border:1px solid #5a4330; border-radius:4px; padding:8px; }
+  button { background:var(--oak); color:var(--cream); border:1px solid var(--brass); border-radius:4px; padding:7px 12px; cursor:pointer; letter-spacing:.06em; text-transform:uppercase; font-size:11px; }
+  button:hover { background:#5c4432; }
+  button.ok { background:var(--felt); } button.no { background:#4a2320; }
+  #feed { font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; max-height:70vh; overflow:auto; }
+  #feed div { padding:2px 0; border-bottom:1px dotted #3b2d21; color:#d9cfbd; }
+  #feed .call { color:var(--amber); } #feed .say { color:var(--smoke); } #feed .run { color:var(--cream); } #feed .approval { color:var(--green); } #feed .lane, #feed .mcp, #feed .deny, #feed .guard { color:var(--red); } #feed .intake, #feed .delegate { color:var(--brass); }
+  #detail { position:fixed; right:0; top:0; bottom:0; width:min(640px, 100vw); background:#1c1510; border-left:2px solid var(--brass); padding:16px 18px; overflow:auto; transform:translateX(100%); transition:transform .25s; z-index:9; }
+  #detail.open { transform:none; }
+  #detail pre { white-space:pre-wrap; background:#120d09; border:1px solid #3b2d21; padding:10px; border-radius:4px; font: 13px/1.5 Georgia, serif; }
+  #detail textarea { width:100%; min-height:60px; background:#17110c; color:var(--cream); border:1px solid #5a4330; border-radius:4px; padding:8px; }
+  .meta { color:var(--smoke); font-size:12px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } .cols { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="name">Nightdesk</h1><span class="sub" id="biz"></span>
+  <div class="meter"><div class="bar"><i id="spendbar"></i></div><small id="spend">today: …</small></div>
+  <span class="pill" id="lanepill">lanes</span>
+  <span class="pill" id="phonepill">phone</span>
+  <span class="pill" id="runpill">0 running</span>
+  <span style="margin-left:auto"></span>
+  <button id="pausebtn">Pause office</button>
+</header>
+<main>
+  <section>
+    <h2>The floor</h2>
+    <div id="chart"></div>
+  </section>
+  <section>
+    <h2>The board</h2>
+    <div class="jobbox">
+      <select id="deskpick"><option value="">any desk</option></select>
+      <input id="job" placeholder='A job for the office ("design: three posts on spring window cleaning")'>
+      <button id="send">Send</button>
+    </div>
+    <div class="cols">
+      <div class="col"><h3>Next</h3><div id="col-next"></div></div>
+      <div class="col"><h3>Doing</h3><div id="col-doing"></div></div>
+      <div class="col"><h3>Waiting for OK</h3><div id="col-waiting"></div></div>
+      <div class="col"><h3>Done</h3><div id="col-done"></div></div>
+    </div>
+  </section>
+  <section>
+    <h2>The wire</h2>
+    <div id="feed"></div>
+  </section>
+</main>
+<div id="detail"><button id="close" style="float:right">Close</button><div id="detailbody"></div></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const api = (p, o) => fetch(p, o && { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(o) }).then(r => r.json());
+let company = null, tickets = [], health = null, running = {};
+// A page opened before a deploy keeps the old code. /api/health carries a build id; when it changes the page reloads once.
+// It cannot loop: only for an id it has not reloaded for, never twice within a minute, and not at all without session storage.
+let knownBuild = '';
+function seeBuild(id) {
+  if (!id || typeof id !== 'string') return false; if (!knownBuild) { knownBuild = id; return false; } if (id === knownBuild) return false;
+  try { const [was, at] = String(sessionStorage.getItem('co.reloadedFor') || '').split('@'); if (was === id || Date.now() - (+at || 0) < 60000) return false; sessionStorage.setItem('co.reloadedFor', id + '@' + Date.now()); } catch (e) { return false; }
+  location.reload(); return true;
+}
+const agentName = id => { const a = agents().find(a => a.id === id); return a ? a.name : id; };
+function agents() { const out = []; const walk = n => { out.push(n); (n.reports||[]).forEach(walk); }; (company?.tree||[]).forEach(walk); return out; }
+
+async function loadAll() {
+  [company, tickets, health] = await Promise.all([api('/api/company'), api('/api/tickets?n=120'), api('/api/health')]);
+  seeBuild(health && health.build);
+  $('#name').textContent = company.name; $('#biz').textContent = company.business;
+  const sel = $('#deskpick'); sel.innerHTML = '<option value="">any desk</option>' + company.departments.map(d => `<optgroup label="${esc(d.name)}">` + agents().filter(a => a.dept === d.id).map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('') + '</optgroup>').join('');
+  renderHealth(); renderChart(); renderBoard();
+}
+function renderHealth() {
+  if (!health) return;
+  const t = health.today; const pct = Math.min(100, 100 * t.usd / t.ceilingUsd);
+  $('#spendbar').style.width = pct + '%';
+  $('#spend').textContent = `today $${t.usd.toFixed(2)} (£${t.gbp.toFixed(2)}) of $${t.ceilingUsd} on the API · ${t.runs} runs · plan absorbed est $${(t.byLane.plan||0).toFixed(2)}`;
+  const l = health.lanes; $('#lanepill').textContent = l.apiKey ? (l.apiDown ? 'API paused → plan' : 'API → plan') : 'plan only'; $('#lanepill').className = 'pill' + (l.apiDown ? ' off' : '');
+  $('#phonepill').textContent = health.phone.on ? `phone @${health.phone.bot || 'on'}` : 'phone off'; $('#phonepill').className = 'pill' + (health.phone.on ? '' : ' off');
+  $('#runpill').textContent = `${health.running.length} running`;
+  $('#pausebtn').textContent = health.paused ? 'Resume office' : 'Pause office';
+  running = Object.fromEntries(health.running.map(r => [r.agent, r.ticket]));
+}
+function renderChart() {
+  const waiting = new Set(tickets.filter(t => t.state === 'waiting').map(t => t.agent));
+  const html = company.departments.map(d => {
+    const desks = agents().filter(a => a.dept === d.id);
+    return `<div class="dept"><b>${esc(d.name)}</b>` + desks.map(a => `<div class="desk ${a.paused ? 'paused' : running[a.id] ? 'working' : waiting.has(a.id) ? 'waiting' : ''} ${a.id === d.lead ? 'lead' : ''}" data-agent="${a.id}"><span class="dot"></span><span class="name">${esc(a.name)}</span><span class="role">${esc(a.model)}${a.tools.length ? ' · ' + a.tools.length + ' conn' : ''}</span></div>`).join('') + '</div>';
+  }).join('');
+  $('#chart').innerHTML = html;
+  document.querySelectorAll('.desk').forEach(el => el.onclick = () => { const id = el.dataset.agent; const a = agents().find(x => x.id === id); openDetail(`<h2>${esc(a.name)} · ${esc(a.role)}</h2><p class="meta">${esc(a.model)} · budget $${a.budgetUsd}/day · connectors: ${a.tools.join(', ') || 'none'}${a.outbound ? ' · drafts wait for your OK' : ''}</p><p><button data-pause="${a.id}">${a.paused ? 'Resume desk' : 'Pause desk'}</button></p><h3>Tickets</h3>` + tickets.filter(t => t.agent === id).slice(0, 15).map(card).join('')); });
+}
+function card(t) { return `<div class="card ${t.state}" data-id="${t.id}"><div class="t">${esc(t.title)}</div><div class="m">${esc(agentName(t.agent))} · ${t.by}${t.lane ? ' · ' + t.lane : ''}${t.engine ? '/' + t.engine : ''}${t.timings?.totalMs ? ' · ' + Math.round(t.timings.totalMs/1000) + 's' : ''}${t.costUsd ? ' · $' + t.costUsd.toFixed(3) : ''}${t.error ? ' · ' + esc(t.error.slice(0,60)) : ''}</div></div>`; }
+function renderBoard() {
+  for (const s of ['next', 'doing', 'waiting', 'done']) $('#col-' + s).innerHTML = tickets.filter(t => s === 'done' ? ['done','failed','cancelled'].includes(t.state) : s === 'next' ? ['next','inbox','blocked'].includes(t.state) : t.state === s).slice(0, 25).map(card).join('') || '<div class="meta">nothing</div>';
+  document.querySelectorAll('.card').forEach(el => el.onclick = () => openTicket(el.dataset.id));
+}
+async function openTicket(id) {
+  const t = await api('/api/tickets/' + id);
+  const body = t.state === 'waiting' ? t.draft : (t.result || t.error || '(no result yet)');
+  openDetail(`<h2>${esc(t.title)}</h2><p class="meta">${esc(agentName(t.agent))} · ${t.state} · ${t.by}${t.routine ? ' · routine ' + t.routine : ''} · ${t.lane || ''}${t.engine ? '/' + t.engine : ''} ${t.model || ''} · boot ${Math.round((t.timings?.bootMs||0)/1000)}s, model ${Math.round((t.timings?.modelMs||0)/1000)}s, total ${Math.round((t.timings?.totalMs||0)/1000)}s · $${(t.costUsd||0).toFixed(4)} (est $${(t.estUsd||0).toFixed(4)})${t.note ? ' · ' + esc(t.note) : ''}</p>
+    <p class="meta">${esc(t.why || '')}</p><pre>${esc(t.text)}</pre>
+    ${(t.calls||[]).length ? `<p class="meta">tool calls: ${t.calls.map(c => esc(c.server + '.' + c.tool)).join(', ')}</p>` : ''}
+    <h3>${t.state === 'waiting' ? 'Draft, waiting for your OK' : 'Result'}</h3><pre>${esc(body)}</pre>
+    ${t.state === 'waiting' ? `<textarea id="note" placeholder="what should change (for Reject)"></textarea><p><button class="ok" data-approve="${t.id}" data-hash="${esc(t.draftHash || '')}">Approve</button> <button class="no" data-reject="${t.id}">Reject</button></p>` : ''}
+    ${['failed','cancelled'].includes(t.state) ? `<p><button data-retry="${t.id}">Retry</button></p>` : ''}
+    ${['next','doing','blocked'].includes(t.state) ? `<p><button data-cancel="${t.id}">Cancel</button></p>` : ''}
+    ${(t.comments||[]).length ? '<h3>Notes</h3>' + t.comments.map(c => `<p class="meta"><b>${esc(c.who)}</b>: ${esc(c.text)}</p>`).join('') : ''}`);
+}
+function openDetail(html) { $('#detailbody').innerHTML = html; $('#detail').classList.add('open'); }
+$('#close').onclick = () => $('#detail').classList.remove('open');
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.approve) { const r = await api(`/api/tickets/${b.dataset.approve}/approve`, { hash: b.dataset.hash }); if (r.error) { alert('Nothing was approved. ' + r.error); openTicket(b.dataset.approve); } else $('#detail').classList.remove('open'); }
+  if (b.dataset.reject) { await api(`/api/tickets/${b.dataset.reject}/reject`, { note: $('#note').value }); $('#detail').classList.remove('open'); }
+  if (b.dataset.retry) { await api(`/api/tickets/${b.dataset.retry}/retry`, {}); $('#detail').classList.remove('open'); }
+  if (b.dataset.cancel) { await api(`/api/tickets/${b.dataset.cancel}/cancel`, {}); $('#detail').classList.remove('open'); }
+  if (b.dataset.pause) { const a = agents().find(x => x.id === b.dataset.pause); await api(`/api/agents/${a.id}/${a.paused ? 'resume' : 'pause'}`, {}); $('#detail').classList.remove('open'); loadAll(); }
+});
+$('#send').onclick = async () => { const text = $('#job').value.trim(); if (!text) return; $('#job').value = ''; await api('/api/tickets', { text, agent: $('#deskpick').value || undefined }); };
+$('#job').addEventListener('keydown', e => { if (e.key === 'Enter') $('#send').click(); });
+$('#pausebtn').onclick = async () => { await api(health.paused ? '/api/office/resume' : '/api/office/pause', {}); };
+
+const feed = $('#feed'); let last = 0;
+function line(e) {
+  const t = new Date(e.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const who = e.agent ? agentName(e.agent) : '';
+  let s = '';
+  if (e.type === 'call') s = `${who} → ${e.server}.${e.tool}`;
+  else if (e.type === 'say') s = `${who}: ${e.text}`;
+  else if (e.type === 'run') s = `${who} ${e.stage}${e.bootMs ? ' (boot ' + Math.round(e.bootMs/1000) + 's' + (e.strict === false ? ', full setup' : '') + ')' : ''}${e.ms ? ' in ' + Math.round(e.ms/1000) + 's' : ''}${e.usd ? ' $' + e.usd.toFixed(3) : ''}${e.lane ? ' · ' + e.lane : ''}${e.error ? ' · ' + e.error : ''}${e.why ? ' · ' + e.why : ''}`;
+  else if (e.type === 'intake') s = `ticket → ${who} (${e.by})${e.why ? ': ' + e.why : ''}`;
+  else if (e.type === 'approval') s = `${e.verdict}${e.note ? ': ' + e.note : ''}`;
+  else if (e.type === 'lane') s = `API lane ${e.state}${e.why ? ': ' + e.why : ''}`;
+  else if (e.type === 'mcp') s = `${who}: connector ${e.server} ${e.status}`;
+  else if (e.type === 'delegate') s = `${agentName(e.from)} delegated to ${agentName(e.to)}`;
+  else if (e.type === 'batch') s = `batch ${e.stage}${e.count ? ' ' + e.count : ''}`;
+  else if (e.type === 'routine') s = `routine ${e.id} ${e.change}`;
+  else if (e.type === 'board') s = e.office ? `office ${e.office}` : `${agentName(e.agent)} ${e.paused ? 'paused' : 'resumed'}`;
+  else if (e.type === 'deny') s = `${who}: refused ${e.tool} (${e.why})`;
+  else if (e.type === 'guard') s = `guard held back ${e.file}: ${(e.hits||[]).join(' | ')}`;
+  else if (e.type === 'workflow') s = `workflow ${e.name}: ${(e.steps||[]).length} steps`;
+  else if (e.type === 'connector') s = `connector ${e.key} ${e.status}${e.tools ? ' (' + e.tools + ' tools)' : ''}`;
+  else if (e.type === 'ticket') return;
+  else s = JSON.stringify(e);
+  const d = document.createElement('div'); d.className = e.type; d.textContent = `${t}  ${s}`; feed.prepend(d);
+  while (feed.children.length > 300) feed.lastChild.remove();
+}
+function connect() {
+  const es = new EventSource('/api/events?since=' + last);
+  es.onmessage = ev => { const e = JSON.parse(ev.data); last = e.seq; line(e); if (['ticket', 'run', 'approval', 'board', 'lane', 'intake'].includes(e.type)) refresh(); };
+  es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+}
+let pending = null;
+function refresh() { clearTimeout(pending); pending = setTimeout(async () => { [tickets, health] = await Promise.all([api('/api/tickets?n=120'), api('/api/health')]); seeBuild(health && health.build); renderHealth(); renderChart(); renderBoard(); }, 300); }
+loadAll().then(connect); setInterval(refresh, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{
+ "feature": {
+  "title": "Feature: {topic}",
+  "owner": "em",
+  "text": "A feature: {topic}. The chain runs as your child tickets; wrap them into one answer: what was built, the PR, the review verdict, what the owner must decide.",
+  "steps": [
+   {
+    "id": "design",
+    "agent": "blead",
+    "title": "Design: {topic}",
+    "text": "Design the change for: {topic}. Files to touch, the data changes, the API shape, the risks, the tests to write. No code yet. NOTHING TO SEND."
+   },
+   {
+    "id": "build",
+    "agent": "bdev",
+    "after": [
+     "design"
+    ],
+    "title": "Build: {topic}",
+    "text": "Build the design from the previous step on a branch named feature/<slug>, with tests. Report the branch, the files changed and the test output. NOTHING TO SEND."
+   },
+   {
+    "id": "test",
+    "agent": "qtest",
+    "after": [
+     "build"
+    ],
+    "title": "Tests: {topic}",
+    "text": "Run the suite on the branch from the previous step and add the tests the change still needs. Report the command, the output and what you added. NOTHING TO SEND."
+   },
+   {
+    "id": "review",
+    "agent": "qrev",
+    "after": [
+     "test"
+    ],
+    "title": "Review: {topic}",
+    "text": "Review the branch cold: findings with file, line, severity and fix, most severe first; then a verdict. NOTHING TO SEND."
+   },
+   {
+    "id": "pr",
+    "agent": "blead",
+    "after": [
+     "review"
+    ],
+    "title": "PR: {topic}",
+    "text": "If the review has no blocker, write the pull request (title, body with what and why, test evidence, the review summary) and open it under AFTER YOUR OK. If there is a blocker, say what must change first."
+   }
+  ]
+ },
+ "incident": {
+  "title": "Incident: {topic}",
+  "owner": "plead",
+  "text": "An incident: {topic}. Read-out first, fix second, never a deploy without the OK.",
+  "steps": [
+   {
+    "id": "readout",
+    "agent": "plead",
+    "title": "Read-out: {topic}",
+    "text": "From the logs and the error tracker: what is failing, since when, how many users, the likely cause. Six lines. NOTHING TO SEND."
+   },
+   {
+    "id": "fix",
+    "agent": "bdev",
+    "after": [
+     "readout"
+    ],
+    "title": "Fix: {topic}",
+    "text": "The smallest fix for the cause in the previous step, on a branch hotfix/<slug>, with a test that fails before and passes after. NOTHING TO SEND."
+   },
+   {
+    "id": "review",
+    "agent": "qrev",
+    "after": [
+     "fix"
+    ],
+    "title": "Review the hotfix",
+    "text": "Review the hotfix branch: is it the smallest safe change? Verdict and findings. NOTHING TO SEND."
+   },
+   {
+    "id": "deploy",
+    "agent": "plead",
+    "after": [
+     "review"
+    ],
+    "title": "Deploy plan: {topic}",
+    "text": "If the review passes, write the deploy and the rollback under AFTER YOUR OK with the exact commands and the check that proves it worked."
+   }
+  ]
+ }
+}

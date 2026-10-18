@@ -1,0 +1,183 @@
+{
+ "routines": [
+  {
+   "id": "connector-check",
+   "dept": "ops",
+   "agent": "olead",
+   "title": "Connector check: every tool a desk uses, probed; the phone hears only what is off",
+   "text": "",
+   "when": {
+    "kind": "daily",
+    "at": "07:30"
+   },
+   "needsOk": false,
+   "paused": false,
+   "kind": "probe"
+  },
+  {
+   "id": "morning-numbers",
+   "dept": "ops",
+   "agent": "dash",
+   "title": "Morning numbers: spend, enquiries, cost per enquiry, leads overnight, anything odd",
+   "text": "Read 00-Meta/stats.json (the stats job refreshes it) and write today's dated lines in 00-Meta/numbers-ledger.md: ad spend yesterday and this week, enquiries, cost per enquiry, new leads, leads waiting for the owner. End with one line on anything odd.",
+   "when": {
+    "kind": "daily",
+    "at": "07:45"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "ad-pacing",
+   "dept": "fin",
+   "agent": "invo",
+   "title": "Morning ad pacing: per ad, and the change to propose if one is due",
+   "text": "Read the ads for yesterday and this week: spend, reach, enquiries and cost per enquiry for each ad. If one ad costs more than twice the target per enquiry for three days, propose pausing it under AFTER YOUR OK. Otherwise say no change.",
+   "when": {
+    "kind": "daily",
+    "at": "08:00"
+   },
+   "needsOk": true,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "daily-brief",
+   "dept": "exec",
+   "agent": "cos",
+   "title": "Daily brief for the owner: what moved, what is waiting, what needs a decision",
+   "text": "Read today's lines in 00-Meta/numbers-ledger.md, 60-Accounts/open-items.md and the in-tray. Five lines: what moved, what is waiting for the owner, the one decision for today.",
+   "when": {
+    "kind": "daily",
+    "at": "08:15"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "inbox-digest",
+   "dept": "emails",
+   "agent": "elead",
+   "title": "Inbox digest: customers, suppliers, platform notices, what needs the owner",
+   "text": "Read the last 24 hours of the business mailbox. Sort into customers, suppliers and notices, send quote requests to REPLY DRAFTS, and list what needs the owner first.",
+   "when": {
+    "kind": "daily",
+    "at": "09:00"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "caption-ab",
+   "dept": "marketing",
+   "agent": "newt",
+   "title": "Caption A/B: two captions for each post due in the next two days",
+   "text": "Read 40-Marketing/page-schedule.md and 20-Brand/voice.md. For each post due in the next two days write caption A (plain) and B (a question hook), under 300 characters each, prices only from the price list.",
+   "when": {
+    "kind": "daily",
+    "at": "06:30"
+   },
+   "needsOk": false,
+   "paused": false,
+   "engine": "batch"
+  },
+  {
+   "id": "lead-digest",
+   "dept": "sales",
+   "agent": "enzo",
+   "title": "Evening lead digest: new leads, stuck quotes, who is waiting for the owner",
+   "text": "From 00-Meta/stats.json: new leads today, quoted, booked, stuck after a quote for two days or more, and who is waiting for the owner. Five lines.",
+   "when": {
+    "kind": "daily",
+    "at": "20:00"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "funnel-review",
+   "dept": "sales",
+   "agent": "lexi",
+   "title": "Monday leads review: last week's enquiries, where they stopped, what to change",
+   "text": "From 00-Meta/stats.json and 50-Leads/MOC-Leads.md: last week's leads stage by stage, where most stopped, and one change to try this week.",
+   "when": {
+    "kind": "weekly",
+    "at": "09:00",
+    "days": [
+     1
+    ]
+   },
+   "needsOk": false,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "seo-audit",
+   "dept": "marketing",
+   "agent": "seo",
+   "title": "Weekly search check: the website against what Bristol customers search for",
+   "text": "Check the website against the searches in 10-Business/facts.md. Three fixes worth doing this week, each with the page, the change and the search it helps.",
+   "when": {
+    "kind": "weekly",
+    "at": "10:00",
+    "days": [
+     1
+    ]
+   },
+   "needsOk": false,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "quality-review",
+   "dept": "ops",
+   "agent": "olead",
+   "title": "Weekly quality review: the week's results against the rulings and the briefs",
+   "text": "With tickets_recent read this week's finished tickets (results only). Score each desk out of five against its brief and 40-Marketing/rulings.md, with one example each, and propose one rule change at most.",
+   "when": {
+    "kind": "weekly",
+    "at": "16:00",
+    "days": [
+     5
+    ]
+   },
+   "needsOk": false,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "weekly-report",
+   "dept": "ops",
+   "agent": "report",
+   "title": "Friday one-pager: ads, Page, leads, bookings, what changed, what to decide",
+   "text": "Write the week's one-pager for the owner from 00-Meta/stats.json and 00-Meta/numbers-ledger.md: ads, Page, leads, booked jobs, what changed, what to decide next week. Every figure dated.",
+   "when": {
+    "kind": "weekly",
+    "at": "17:00",
+    "days": [
+     5
+    ]
+   },
+   "needsOk": false,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "week-plan",
+   "dept": "marketing",
+   "agent": "mlead",
+   "title": "Plan next week's posts: captions, visuals, slots, ready to schedule",
+   "text": "As a team, plan the Page for the coming week, one post a day at 18:00. CONTENT writes, RULINGS CHECK checks, DESIGN makes the visual. Write the schedule steps under AFTER YOUR OK; nothing is scheduled without the owner's OK.",
+   "when": {
+    "kind": "weekly",
+    "at": "18:00",
+    "days": [
+     0
+    ]
+   },
+   "needsOk": true,
+   "paused": false,
+   "model": "opus"
+  }
+ ]
+}

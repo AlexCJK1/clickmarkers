@@ -1,0 +1,80 @@
+{
+ "new-post": {
+  "title": "New post: {topic}",
+  "owner": "mlead",
+  "text": "A new Page post on: {topic}. CONTENT writes the words, RULINGS CHECK passes every line, DESIGN makes the visual, then you choose one and write the schedule step under AFTER YOUR OK with the file, the caption and the next free slot from 40-Marketing/page-schedule.md. Nothing is scheduled without the owner's OK.",
+  "steps": [
+   {
+    "id": "words",
+    "agent": "newt",
+    "title": "Words: {topic}",
+    "text": "Write the words for one Page post on: {topic}. A headline under 40 characters and three lines, prices only from 10-Business/price-list.md, no em dashes. Give two caption variants (A plain, B with a question hook). NOTHING TO SEND."
+   },
+   {
+    "id": "check",
+    "agent": "comply",
+    "after": [
+     "words"
+    ],
+    "title": "Rulings check: {topic}",
+    "text": "Check the words from the previous step line by line against 40-Marketing/rulings.md and 10-Business/price-list.md. PASS or FAIL per line, a fixed line for every FAIL, then the final words. NOTHING TO SEND."
+   },
+   {
+    "id": "render",
+    "agent": "gfx",
+    "after": [
+     "check"
+    ],
+    "title": "Visual: {topic}",
+    "text": "Make the visual for the checked words in the house style from 20-Brand/visual-identity.md and check it at 390 px wide. List the file. NOTHING TO SEND."
+   }
+  ]
+ },
+ "ad-review": {
+  "title": "Ad review: {topic}",
+  "owner": "mlead",
+  "text": "Review the ads on: {topic}. ADS reads the numbers, RULINGS CHECK checks any new wording; you write the one change worth making under AFTER YOUR OK.",
+  "steps": [
+   {
+    "id": "numbers",
+    "agent": "ada",
+    "title": "Ad numbers: {topic}",
+    "text": "Read the ads for the last 7 days: spend, reach, enquiries and cost per enquiry per ad, and the one change worth making for: {topic}. NOTHING TO SEND."
+   },
+   {
+    "id": "check",
+    "agent": "comply",
+    "after": [
+     "numbers"
+    ],
+    "title": "Rulings check: {topic}",
+    "text": "Check any new wording in the previous step against 40-Marketing/rulings.md. PASS or FAIL per line. NOTHING TO SEND."
+   }
+  ]
+ },
+ "weekly-pack": {
+  "title": "Weekly pack",
+  "owner": "cos",
+  "text": "The week in one pack for the owner: the numbers, the leads and the spend, with the three decisions for next week.",
+  "steps": [
+   {
+    "id": "numbers",
+    "agent": "dash",
+    "title": "Numbers for the week",
+    "text": "The week's dated figures from 00-Meta/stats.json and the ledger. NOTHING TO SEND."
+   },
+   {
+    "id": "funnel",
+    "agent": "lexi",
+    "title": "Leads for the week",
+    "text": "Last week's leads stage by stage and where they stopped. NOTHING TO SEND."
+   },
+   {
+    "id": "spend",
+    "agent": "invo",
+    "title": "Spend for the week",
+    "text": "Ad spend for the week against the budget, per ad. NOTHING TO SEND."
+   }
+  ]
+ }
+}

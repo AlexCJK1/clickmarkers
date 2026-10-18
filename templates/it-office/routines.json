@@ -1,0 +1,91 @@
+{
+ "routines": [
+  {
+   "id": "ci-triage",
+   "dept": "platform",
+   "agent": "pci",
+   "title": "CI triage: every failed run since yesterday",
+   "text": "With the GitHub connector list workflow runs that failed in the last 24 hours on the main repository. For each: the failing step, the error line, flaky or real, the fix. Five lines per run at most. NOTHING TO SEND.",
+   "when": {
+    "kind": "weekdays",
+    "at": "08:00"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "daily-brief",
+   "dept": "exec",
+   "agent": "em",
+   "title": "Daily engineering brief",
+   "text": "With tickets_recent (1 day) and the open items note: what shipped, what is in review, what is blocked, the one decision needed from the owner. Eight lines at most. NOTHING TO SEND.",
+   "when": {
+    "kind": "weekdays",
+    "at": "08:15"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "pr-review-sweep",
+   "dept": "quality",
+   "agent": "qlead",
+   "title": "Review sweep: open PRs without a review",
+   "text": "With the GitHub connector list open pull requests with no review. Delegate a REVIEWER ticket per PR (title: Review PR #n), then wrap the findings. NOTHING TO SEND.",
+   "when": {
+    "kind": "weekdays",
+    "at": "10:00"
+   },
+   "needsOk": false,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "dependency-audit",
+   "dept": "security",
+   "agent": "sdeps",
+   "title": "Weekly dependency audit",
+   "text": "Outdated and vulnerable dependencies in the main repository with the safe upgrade order. Append a dated summary to 50-Security/log.md with brain_append. NOTHING TO SEND.",
+   "when": {
+    "kind": "weekly",
+    "at": "09:00",
+    "days": [
+     1
+    ]
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "release-notes",
+   "dept": "release",
+   "agent": "rlead",
+   "title": "Weekly release notes draft",
+   "text": "From the merged PRs this week (GitHub) write the release notes in plain words for users, grouped by what changed for them. The tag and the publish step go under AFTER YOUR OK.",
+   "when": {
+    "kind": "weekly",
+    "at": "15:00",
+    "days": [
+     5
+    ]
+   },
+   "needsOk": true,
+   "paused": false,
+   "model": "opus"
+  },
+  {
+   "id": "connector-check",
+   "kind": "probe",
+   "dept": "platform",
+   "agent": "plead",
+   "title": "Connector check",
+   "text": "",
+   "when": {
+    "kind": "daily",
+    "at": "07:30"
+   },
+   "needsOk": false,
+   "paused": false
+  }
+ ]
+}
