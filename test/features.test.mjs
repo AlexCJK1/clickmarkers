@@ -226,7 +226,7 @@ test('server: the new routes answer (parse, when, routines, calendar, chat, brai
   srv.closeAllConnections(); srv.close(); o.stop();
 });
 
-/* ---------- the critic's findings, each pinned ---------- */
+/* ---------- review findings, each pinned ---------- */
 import { buildRequest } from '../engines/messages.mjs';
 import { merge3 } from '../scripts/merge-live.mjs';
 import { Phone } from '../io/telegram.mjs';

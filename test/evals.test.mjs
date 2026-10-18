@@ -1040,7 +1040,7 @@ test('a dropped file is scanned strict, as it always was: any one signal holds i
   const t = o.tickets.get((await o.submit({ text: 'DESIGN: a post on the spring offer', needsOk: true })).id);
   const user = userPrompt({ ticket: t, phase: 'draft', vault: o.vault, tickets: o.tickets, tz: o.cfg.timezone });
   assert.match(user, /Inbox\/manager\.md\n\(held back by the guard/); assert.doesNotMatch(user, /Write into 60-Accounts\/open-items\.md/);
-  // strict is the old rule: whatever one of the old patterns caught, strict catches (over the four, the critic's other cases and the ordinary phrases)
+  // strict is the old rule: whatever one of the old patterns caught, strict catches (over the four, the review's other cases and the ordinary phrases)
   const OLD = [/ignore (all |the |your )?(previous|prior|above|earlier) (instructions|rules|prompts?)/i, /disregard (all |the |your )?(previous|prior|above|earlier)/i, /you are now (a|an|the) /i, /system prompt/i,
     /\b(reveal|print|show|dump|send|forward|exfiltrate) (me |us )?(the |your |all )?(secrets?|api[ -]?keys?|tokens?|passwords?|credentials?|\.secrets)/i, /\bapprove(d)? (this|it|the draft) (automatically|without)/i, /\bdo not (tell|inform|show) the owner/i,
     /\bthis (message|note|file) (overrides|supersedes)/i, /\bas (the|your) (owner|admin|administrator|developer|anthropic)\b.*\b(instruct|order|command|authori[sz]e)/i];

@@ -19,7 +19,7 @@ export function buildGraph(root) {
       let text = '', st = null; try { text = fs.readFileSync(file, 'utf8'); st = fs.statSync(file); } catch { continue; }
       const top = rel.includes('/') ? rel.split('/')[0] : '(top)';
       const folder = top === 'Nightdesk' ? `Nightdesk/${rel.split('/')[1] || ''}`.replace(/\/[^/]*\.md$/, '') : top;
-      const n = { i: notes.length, rel, name: e.name.replace(/\.md$/, ''), folder, size: st.size, mtime: st.mtimeMs, office: top === 'Nightdesk' || top === 'Agents Office', text };
+      const n = { i: notes.length, rel, name: e.name.replace(/\.md$/, ''), folder, size: st.size, mtime: st.mtimeMs, office: top === 'Nightdesk', text };
       notes.push(n);
       byKey.set(rel.toLowerCase().replace(/\.md$/, ''), n);
       if (!byKey.has(n.name.toLowerCase())) byKey.set(n.name.toLowerCase(), n);

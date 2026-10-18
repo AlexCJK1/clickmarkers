@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { scan, fence } from '../core/guard.mjs';
 
-const SKIP_DIRS = new Set(['Agents Office', 'Nightdesk', 'node_modules', '.git', '.obsidian']);
+const SKIP_DIRS = new Set(['Nightdesk', 'node_modules', '.git', '.obsidian']);
 const NOTE_EXT = new Set(['.md']);
 const INBOX_EXT = new Set(['.md', '.txt', '.csv', '.json']);
 
@@ -153,9 +153,9 @@ export class Vault {
     return `Nightdesk/deliverables/${name}`;
   }
 
-  /** A skill: <brain>/skills/<name>/SKILL.md (or the older Agents Office/skills path). */
+  /** A skill: <brain>/skills/<name>/SKILL.md (or <brain>/Nightdesk/skills). */
   skill(name) {
-    for (const dir of ['skills', 'Nightdesk/skills', 'Agents Office/skills']) {
+    for (const dir of ['skills', 'Nightdesk/skills']) {
       const f = path.join(this.root, dir, name, 'SKILL.md');
       try { return fs.readFileSync(f, 'utf8'); } catch {}
     }
@@ -163,7 +163,7 @@ export class Vault {
   }
   skills() {
     const out = new Set();
-    for (const dir of ['skills', 'Nightdesk/skills', 'Agents Office/skills']) { try { for (const e of fs.readdirSync(path.join(this.root, dir), { withFileTypes: true })) if (e.isDirectory() && fs.existsSync(path.join(this.root, dir, e.name, 'SKILL.md'))) out.add(e.name); } catch {} }
+    for (const dir of ['skills', 'Nightdesk/skills']) { try { for (const e of fs.readdirSync(path.join(this.root, dir), { withFileTypes: true })) if (e.isDirectory() && fs.existsSync(path.join(this.root, dir, e.name, 'SKILL.md'))) out.add(e.name); } catch {} }
     return [...out].sort();
   }
   /** The live numbers, if the stats file is there. */

@@ -454,7 +454,7 @@ test('trifecta: no shipped desk reads private material and reaches the web; one 
   } finally { delete process.env.ANTHROPIC_API_KEY; p.stop(); }
 });
 
-/* ---------- critic round 2 ---------- */
+/* ---------- review round 5 ---------- */
 
 test('c2-1: after the OK, an address hidden from the target check (a comment, a quoted part, an IP) is refused, by the gate and by the mail server', async () => {
   const o = office(); const steps = 'Reply ready.\n\nAFTER YOUR OK\n1. mail_send(to="jo@larkspur.example", subject="Your quote", body="...")';

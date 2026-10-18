@@ -317,7 +317,7 @@ test('switch-on: each service is checked with Google; a switched-off API stays o
   o.stop();
 });
 
-// ---- critic round 1 ------------------------------------------------------------------------------------
+// ---- hardening, part 1 ------------------------------------------------------------------------------------
 test('secrets: a sign-in written to the file reaches the running office without a restart', () => {
   const d = tmp('sec-'); const f = path.join(d, '.secrets.local'); fs.writeFileSync(f, 'GOOGLE_REFRESH_TOKEN=old-token-value\n');
   setSecretsCheckMs(0);
@@ -404,8 +404,8 @@ test('sign-in: a doubled callback exchanges the code once and still succeeds', a
   assert.equal((await p).account, 'office@example.com');
 });
 
-// ---- critic round 2 ------------------------------------------------------------------------------------
-test('round 2: a timed change with a bare date is refused, calendar ids with dots too; a half-saved secrets file keeps the old ones; a linked secrets file is written through', async () => {
+// ---- hardening, part 2 ------------------------------------------------------------------------------------
+test('hardening: a timed change with a bare date is refused, calendar ids with dots too; a half-saved secrets file keeps the old ones; a linked secrets file is written through', async () => {
   const g = fakeGoogle([[/GET .*\/events\/timed$/, () => ({ id: 'timed', summary: 'Call', start: { dateTime: '2026-10-13T08:00:00Z' }, end: { dateTime: '2026-10-13T09:00:00Z' } })], [/PATCH/, ({ json }) => ({ id: 'timed', ...json })]]);
   const { call, close } = await client(g, ['calendar']);
   const r = await call('calendar_update', { eventId: 'timed', start: '2026-11-01', allDay: false }); assert.equal(r.error, true); assert.match(r.text, /needs a start time/);

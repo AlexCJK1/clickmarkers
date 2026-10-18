@@ -23,6 +23,9 @@ send, post, book or spend comes to your **in-tray** as a draft. One tap approves
 It is for the businesses that cannot afford an agency and have no time to run one: a window cleaner,
 a café, a lettings agent, a recruiter, a one-person shop.
 
+**Status:** early (0.1). It grew out of the AI office the author uses every day for his own business's
+marketing. Expect rough edges, and please report them.
+
 ## Try it in two minutes
 
 You need [Node 22 or newer](https://nodejs.org). The demo needs no API key and sends nothing.
@@ -99,7 +102,8 @@ that in code, not by asking the model nicely:
   or changes something is refused, call by call. A tool nobody has listed counts as one that writes.
 - **After you approve, only what you approved.** The run gets the exact draft you saw. It may call only
   the tools its steps name, and only with the email addresses and links in that draft.
-- **Your data stays home.** It runs on your machine and listens only there. Your keys never reach the
+- **Your data stays home.** It runs on your machine and listens only there. What a desk works on goes
+  to the Anthropic API and to the tools you connect, and nowhere else. Your keys never reach the
   connectors it starts. A desk that browses the web is not handed your private notes.
 - **Checked by an attacker's eye.** An adversarial review in five rounds tried to break each control.
   What it found is fixed and covered by tests in [`test/security.test.mjs`](test/security.test.mjs).
