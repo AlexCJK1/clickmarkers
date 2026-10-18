@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en-GB">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clickmarkers guide</title>
+<style>
+@font-face { font-family: "Inter"; font-weight: 100 900; font-display: swap; src: url(fonts/inter.woff2) format("woff2"); }
+@font-face { font-family: "Archivo"; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; src: url(fonts/archivo.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(fonts/jetbrains-mono.woff2) format("woff2"); }
+/* Layout: one reading column; the main screen is a big annotated picture with its key beside it,
+   then the five everyday jobs, the views, the phone and the keys. The look is the office's own: Night Watch. */
+:root {
+  color-scheme: dark;
+  --bg0: #060A10; --bg1: #0B1119; --bg2: #111925; --bg3: #18222F; --hair: #1F2A3A;
+  --t1: #E9EEF5; --t2: #A9B5C6; --t3: #8692A6;
+  --brand: #38CCD6; --brand-ink: #04161A;
+  --good: #6CD86A; --warn: #F5D04A; --crit: #E8455A; --idle: #5E7088;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: radial-gradient(1200px 600px at 50% -10%, #0F1A26 0%, var(--bg0) 60%) fixed, var(--bg0); color: var(--t1); font: 400 15px/1.6 var(--ui); padding-inline: 20px; padding-block: 0 64px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+a { color: var(--brand); }
+h1, h2, h3 { font-family: var(--display); font-stretch: 115%; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; font-weight: 700; }
+h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; font-weight: 650; }
+h3 { font-size: 18px; line-height: 1.3; font-weight: 600; font-stretch: 105%; }
+p { margin: 0; }
+.muted { color: var(--t2); }
+.small { font-size: 13px; color: var(--t3); }
+.kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 5px; background: var(--bg3); box-shadow: inset 0 0 0 1px #2B3A4E, 0 1px 0 #2B3A4E; font: 500 12px/18px var(--mono); color: var(--t1); text-align: center; white-space: nowrap; }
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; margin-inline: -20px; padding: 10px 20px; background: rgb(6 10 16 / .86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hair); }
+.bar .wrap { display: flex; align-items: center; gap: 18px; overflow-x: auto; scrollbar-width: none; }
+.bar .mark { display: flex; align-items: center; gap: 8px; font: 650 14px/1 var(--display); font-stretch: 115%; white-space: nowrap; color: var(--t1); text-decoration: none; }
+.bar .mark i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--brand); display: grid; place-items: center; }
+.bar .mark i::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+.bar nav { display: flex; gap: 4px; }
+.bar nav a { color: var(--t2); text-decoration: none; font: 500 13px/1 var(--ui); padding: 8px 10px; border-radius: 6px; white-space: nowrap; }
+.bar nav a:hover, .bar nav a:focus-visible { color: var(--t1); background: var(--bg2); outline: none; }
+/* hero */
+.hero { padding-block: 44px 28px; display: grid; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+.hero p { max-width: 68ch; color: var(--t2); font-size: 16px; }
+section { padding-block: 36px; border-top: 1px solid var(--hair); display: grid; gap: 20px; }
+.lead { max-width: 70ch; color: var(--t2); }
+/* annotated screen */
+.tour { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.shot { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px var(--hair), 0 30px 60px -30px #000; background: var(--bg1); }
+.shot img { display: block; width: 100%; height: auto; }
+.zone { position: absolute; border-radius: 6px; box-shadow: 0 0 0 2px var(--brand), 0 0 0 4000px rgb(4 8 12 / .55); opacity: 0; transition: opacity .18s; pointer-events: none; }
+.zone.on { opacity: 1; }
+.dot { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; background: var(--brand); color: var(--brand-ink); font: 700 13px/26px var(--ui); text-align: center; box-shadow: 0 0 0 3px rgb(6 10 16 / .8), 0 4px 14px rgb(0 0 0 / .5); padding: 0; }
+.dot:hover, .dot.on { background: #fff; }
+.dot:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.key { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.key button { width: 100%; text-align: left; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-radius: 8px; border: 0; background: var(--bg1); color: var(--t1); cursor: pointer; font: inherit; box-shadow: inset 0 0 0 1px var(--hair); }
+.key button:hover { background: var(--bg2); }
+.key button.on { background: var(--bg2); box-shadow: inset 0 0 0 1px var(--brand); }
+.key button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.key .n { width: 22px; height: 22px; border-radius: 50%; background: var(--bg3); color: var(--brand); font: 700 12px/22px var(--ui); text-align: center; margin-top: 1px; }
+.key button.on .n { background: var(--brand); color: var(--brand-ink); }
+.key b { font-weight: 600; display: block; }
+.key .more { display: none; color: var(--t2); font-size: 14px; margin-top: 4px; }
+.key button.on .more { display: block; }
+/* tasks */
+.task { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; padding: 20px; border-radius: 12px; background: var(--bg1); box-shadow: inset 0 0 0 1px var(--hair); }
+.task.flip { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.task.flip .shot { order: 2; }
+.task .body { display: grid; gap: 12px; min-width: 0; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); width: 24px; height: 24px; border-radius: 50%; background: var(--bg3); color: var(--t1); font: 600 12px/24px var(--ui); text-align: center; margin-top: 1px; }
+.tip { padding: 10px 12px; border-radius: 8px; background: var(--bg2); color: var(--t2); font-size: 14px; display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; }
+.tip::before { content: 'i'; width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--t3); color: var(--t3); font: 700 10px/16px var(--ui); text-align: center; margin-top: 3px; }
+.tip.warn::before { content: '!'; box-shadow: inset 0 0 0 1.5px var(--warn); color: var(--warn); }
+/* views */
+.views { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.view { display: grid; gap: 10px; align-content: start; padding: 14px; border-radius: 12px; background: var(--bg1); box-shadow: inset 0 0 0 1px var(--hair); min-width: 0; }
+.view .shot { border-radius: 8px; box-shadow: 0 0 0 1px var(--hair); }
+.view .shot img { aspect-ratio: 16 / 10; object-fit: cover; object-position: left top; }
+.view h3 { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* states */
+.states { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.state { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border-radius: 10px; background: var(--bg1); box-shadow: inset 0 0 0 1px var(--hair); }
+.pod { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #6b7a8d, #2a3443 70%); box-shadow: 0 0 0 3px var(--ring, #2B3A4E), 0 0 12px var(--glow, transparent); }
+/* phone */
+.phone { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
+.phone .shot { border-radius: 28px; box-shadow: 0 0 0 8px #0d141d, 0 0 0 9px #2B3A4E; }
+.cmds { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; align-items: baseline; }
+/* keys table */
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; }
+.keys div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: baseline; padding-block: 6px; border-bottom: 1px solid var(--hair); }
+@media (max-width: 980px) {
+  .tour, .task, .task.flip, .phone { grid-template-columns: minmax(0, 1fr); }
+  .task.flip .shot { order: 0; }
+  .phone .shot { max-width: 300px; }
+}
+@media (max-width: 560px) { .dot { width: 20px; height: 20px; font-size: 11px; line-height: 20px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+/* print and PDF: every part of the main screen spelt out, no sticky bar, no hotspots, nothing split across pages */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  body { padding-inline: 0; background: var(--bg0); -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 13px; }
+  .bar { position: static; }
+  .bar nav { display: none; }
+  .dot, .zone { display: none !important; }
+  .tour { grid-template-columns: minmax(0, 1fr); }
+  .key button .more { display: block; }
+  .key button.on { box-shadow: inset 0 0 0 1px var(--hair); }
+  .key button.on .n { background: var(--bg3); color: var(--brand); }
+  .task, .view, .state, .phone, .keys, .key li, #colours { break-inside: avoid; }
+  section { break-inside: auto; padding-block: 24px; }
+  h2, .lead { break-after: avoid; }
+  .views { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .task, .task.flip, .phone { grid-template-columns: minmax(0, 1fr); }
+  .task.flip .shot { order: 0; }
+  .phone .shot { max-width: 240px; }
+}
+section[id] { scroll-margin-top: 64px; }
+</style>
+
+<header class="bar"><div class="wrap">
+  <a class="mark" href="#top"><i></i>Clickmarkers</a>
+  <nav aria-label="On this page">
+    <a href="#screen">The screen</a><a href="#job">Give a job</a><a href="#approve">Approve</a><a href="#desk">A desk</a><a href="#views">The views</a><a href="#colours">Colours</a><a href="#phone">Phone</a><a href="#keys">Keys</a>
+  </nav>
+</div></header>
+
+<main class="wrap" id="top">
+  <div class="hero">
+    <span class="eyebrow">How to use your office</span>
+    <h1>Clickmarkers, in ten minutes</h1>
+    <p>Your office runs on your own computer at <b>127.0.0.1:4600</b>. Desks do the work; you give jobs, read results and say yes or no to anything that goes out. The pictures are the demo office, a made-up window cleaner: run <span class="kbd">npm run demo:show</span> to click round it yourself.</p>
+  </div>
+
+  <section id="screen" aria-labelledby="screen-h">
+    <h2 id="screen-h">The main screen</h2>
+    <p class="lead">Tap a number to see what that part does. Everything else opens from here and closes with <span class="kbd">Esc</span>.</p>
+    <div class="tour">
+      <div class="shot" id="tour-shot">
+        <img src="img/main.webp" width="1600" height="900" alt="The main screen of Clickmarkers: the executive suite on the left, the war room in the middle, telemetry on the right">
+        <div class="zone" id="zone"></div>
+      </div>
+      <ol class="key" id="tour-key"></ol>
+    </div>
+  </section>
+
+  <section id="job" aria-labelledby="job-h">
+    <h2 id="job-h">Give the office a job</h2>
+    <div class="task">
+      <div class="shot"><img src="img/jobpicker.webp" alt="The job bar with the Who list open: the office picks, workflows and the department leads" loading="lazy"></div>
+      <div class="body">
+        <ol class="steps">
+          <li><span>Click the job bar at the bottom of the war room, or press <span class="kbd">/</span>. Press <span class="kbd">M</span> to speak it instead.</span></li>
+          <li><span>Write it as you would to a person: <i>design three posts on spring window cleaning</i>, or <i>tomorrow 9am chase the stuck quotes</i>.</span></li>
+          <li><span>Press <b>Send</b>. The office picks the right desk. To choose one yourself, use <b>Who</b>, or start the job with the desk's name: <i>DESIGN: a post on gutter clearing</i>.</span></li>
+        </ol>
+        <div class="tip"><span><b>Later</b> books it for a date and time. <b>Big editor</b> (<span class="kbd">Ctrl+Shift+E</span>) gives a large box for a long brief. Leave <b>Model</b> and <b>Effort</b> on <i>Desk's own</i> unless you have a reason.</span></div>
+        <p class="small">You can follow it on the Board and in the desk's "In hand". The result lands in the desk's "Done" and on your phone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="approve" aria-labelledby="approve-h">
+    <h2 id="approve-h">Approve or send back a draft</h2>
+    <div class="task flip">
+      <div class="shot"><img src="img/intray.webp" alt="The in-tray with one draft: the evaluations check, the draft text, Approve and Reject" loading="lazy"></div>
+      <div class="body">
+        <p class="muted">Nothing is sent, posted, booked or spent without your OK. When a desk wants to do one of those, its pod turns yellow and the draft waits in the <b>In-tray</b>.</p>
+        <ol class="steps">
+          <li><span>Open the In-tray: the <b>In-tray</b> tab (its number is how many are waiting), the yellow pod, or <span class="kbd">I</span>.</span></li>
+          <li><span>Read the box at the top first. The evaluations desk has already checked the draft: <b>Passed</b>, or what problem is left.</span></li>
+          <li><span><b>Approve</b> carries out the steps you read, with only the tools they name and the addresses and links in the draft. To change it, type what should change in the box and press <b>Reject</b>; it goes back to the desk with your note.</span></li>
+        </ol>
+        <div class="tip"><span>If the office refuses (for example the draft changed while you read it), a red line under the buttons says so and nothing is sent.</span></div>
+        <p class="small">On your phone, the same draft arrives in Telegram with APPROVE and REJECT buttons.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="desk" aria-labelledby="desk-h">
+    <h2 id="desk-h">Look after a desk</h2>
+    <div class="task">
+      <div class="shot"><img src="img/desk.webp" alt="A desk opened: Leads lead's team in the war room and its Work tab on the right" loading="lazy"></div>
+      <div class="body">
+        <p class="muted">Click a desk's card in the executive suite or its pod in the war room (or press <span class="kbd">1</span> to <span class="kbd">6</span> for the department leads). The war room zooms to its team and its page opens on the right.</p>
+        <ol class="steps">
+          <li><span><b>Work</b>: today's spend against its budget, whether it may send things (with your OK), its model, the tools it uses, and its standing brief.</span></li>
+          <li><span><b>Brief this desk</b> changes its standing brief. <b>Pause desk</b> stops it taking new work. The box gives a job to this desk only.</span></li>
+          <li><span>Below: its live thoughts, what it has <b>In hand</b>, and what it has <b>Done</b>. Open any ticket to read the result, reply, or retry.</span></li>
+          <li><span><b>Chat</b> lets you talk to the desk directly.</span></li>
+        </ol>
+        <p class="small">Close it, or press <span class="kbd">0</span> or <span class="kbd">Esc</span>, to go back to the whole office.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="views" aria-labelledby="views-h">
+    <h2 id="views-h">The views</h2>
+    <p class="lead">The tabs along the top. Each one slides in from the right; <span class="kbd">Esc</span> closes it.</p>
+    <div class="views">
+      <article class="view"><div class="shot"><img src="img/numbers.webp" alt="Numbers: leads per day, link clicks, clicks by channel, the lead pipeline and paid ads" loading="lazy"></div><h3>Numbers <span class="kbd">N</span></h3><p class="muted">Leads and link clicks per day, clicks by channel, where every lead stands, and the paid ads. Switch 7 or 14 days. Every chart has <b>Show as table</b>. Hatched days were not tracked yet; they are not zeros.</p></article>
+      <article class="view"><div class="shot"><img src="img/board.webp" alt="Board: every ticket in columns by state" loading="lazy"></div><h3>Board <span class="kbd">B</span></h3><p class="muted">Every job in columns: Next, Doing, Waiting for you, Done. Open one to read it, reply to it, retry it or cancel it.</p></article>
+      <article class="view"><div class="shot"><img src="img/ledger.webp" alt="Ledger: spend yesterday and today, by desk and by model" loading="lazy"></div><h3>Ledger <span class="kbd">L</span></h3><p class="muted">What the office has cost on your API key: yesterday, today, by desk, by model and by engine, and every run. Past the daily ceiling ($10 unless you change it), new jobs wait until midnight.</p></article>
+      <article class="view"><div class="shot"><img src="img/calendar.webp" alt="Calendar: routines, booked jobs and work done by day" loading="lazy"></div><h3>Calendar <span class="kbd">C</span></h3><p class="muted">Routines ahead, jobs booked for later, and work done, by day. The lane at the top is what runs every day. Press <b>+</b> on a day to book a job for it.</p></article>
+      <article class="view"><div class="shot"><img src="img/routines.webp" alt="Routines: a new routine in plain words, the list of routines and the workflows" loading="lazy"></div><h3>Routines <span class="kbd">R</span></h3><p class="muted">The office's clock. Add one in plain words (<i>every weekday at 8am send me the inbox digest</i>), run one now, pause, edit or delete it. Workflows on the right are chains of desks you can start with a topic.</p></article>
+      <article class="view"><div class="shot"><img src="img/brain.webp" alt="Brain: the map of notes and how they link" loading="lazy"></div><h3>Brain <span class="kbd">G</span></h3><p class="muted">Your notes, the office's memory (a folder of markdown files), as a map or a list. A note lights up when a desk reads it. Tap one to read it and see what it links to.</p></article>
+    </div>
+  </section>
+
+  <section id="colours" aria-labelledby="colours-h">
+    <h2 id="colours-h">What the colours mean</h2>
+    <p class="lead">The ring round each pod, and the word under it, say what the desk is doing.</p>
+    <div class="states">
+      <div class="state"><i class="pod"></i><div><b>Idle</b><p class="small">Nothing to do.</p></div></div>
+      <div class="state"><i class="pod" style="--ring: var(--brand); --glow: rgb(56 204 214 / .5)"></i><div><b>Working</b><p class="small">Busy, or open in your hand.</p></div></div>
+      <div class="state"><i class="pod" style="--ring: var(--warn); --glow: rgb(245 208 74 / .45)"></i><div><b>Waiting for you</b><p class="small">A draft needs your OK.</p></div></div>
+      <div class="state"><i class="pod" style="--ring: var(--crit); --glow: rgb(232 69 90 / .45)"></i><div><b>Failed</b><p class="small">Its last job failed. Open it to retry.</p></div></div>
+      <div class="state"><i class="pod" style="--ring: #1a222d; opacity: .55"></i><div><b>Paused</b><p class="small">Takes no new work.</p></div></div>
+    </div>
+    <div class="tip"><span>Across the page, green means fine, yellow needs you, orange is a problem, and red failed. Teal only ever means "live" or "you can press this".</span></div>
+  </section>
+
+  <section id="phone" aria-labelledby="phone-h">
+    <h2 id="phone-h">On a small screen and on your phone</h2>
+    <div class="phone">
+      <div class="shot"><img src="img/phone.webp" alt="The compact layout: the war room, connectors and the ad numbers, with tabs at the bottom" loading="lazy"></div>
+      <div class="body" style="display: grid; gap: 16px; min-width: 0">
+        <p class="muted">On any screen under 1280 pixels wide the page becomes one page at a time, with tabs at the bottom: <b>War room</b>, <b>In-tray</b>, <b>Numbers</b>, <b>Logs</b> and <b>More</b> (everything else). The <b>+</b> button gives a job. Pausing the office there takes a second tap, so a thumb cannot do it by accident.</p>
+        <h3>Your phone is Telegram</h3>
+        <p class="muted">The office talks to you through your Telegram bot. Type a job in plain words and it becomes a ticket. Drafts arrive with <b>APPROVE</b> and <b>REJECT</b> buttons, and results land there too.</p>
+        <div class="cmds">
+          <span class="kbd">/waiting</span><span>What is waiting for your OK</span>
+          <span class="kbd">/tasks</span><span>Open jobs and their state</span>
+          <span class="kbd">/routines</span><span>The clock: every routine and when it runs next</span>
+          <span class="kbd">/run morning numbers</span><span>Run a routine now</span>
+          <span class="kbd">/pause</span><span>Pause the office; <span class="kbd">/resume</span> opens it again</span>
+          <span class="kbd">/help</span><span>The full list</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="keys" aria-labelledby="keys-h">
+    <h2 id="keys-h">Keys</h2>
+    <p class="lead">They work whenever you are not typing in a box. <span class="kbd">?</span> shows this list in the office.</p>
+    <div class="keys">
+      <div><span><span class="kbd">/</span></span><span>Type a job</span></div>
+      <div><span><span class="kbd">M</span></span><span>Speak a job</span></div>
+      <div><span><span class="kbd">Ctrl+Shift+E</span></span><span>The big editor</span></div>
+      <div><span><span class="kbd">1</span> to <span class="kbd">6</span></span><span>Open a department lead</span></div>
+      <div><span><span class="kbd">0</span> or <span class="kbd">Esc</span></span><span>Back to the whole office</span></div>
+      <div><span><span class="kbd">I</span></span><span>In-tray</span></div>
+      <div><span><span class="kbd">B</span></span><span>Board</span></div>
+      <div><span><span class="kbd">L</span></span><span>Ledger</span></div>
+      <div><span><span class="kbd">N</span></span><span>Numbers</span></div>
+      <div><span><span class="kbd">C</span></span><span>Calendar</span></div>
+      <div><span><span class="kbd">G</span></span><span>Brain</span></div>
+      <div><span><span class="kbd">R</span></span><span>Routines</span></div>
+      <div><span><span class="kbd">K</span></span><span>Check the connectors</span></div>
+      <div><span><span class="kbd">?</span></span><span>Keys and help</span></div>
+    </div>
+    <h3 style="margin-top: 8px">Moving round the war room</h3>
+    <div class="keys">
+      <div><span>Drag a pod</span><span>Move it (remembered in this browser)</span></div>
+      <div><span>Drag the table</span><span>Turn round the hub</span></div>
+      <div><span>Right-drag</span><span>Slide the view</span></div>
+      <div><span>Scroll</span><span>Zoom in and out</span></div>
+      <div><span>Click a pod</span><span>Open that desk</span></div>
+      <div><span>Reset layout</span><span>Put every pod back</span></div>
+    </div>
+  </section>
+  <footer class="small" style="padding-top: 28px; border-top: 1px solid var(--hair)">Clickmarkers by Alex Cojoaca. Free software under the GNU AGPL 3.0. <a href="https://github.com/AlexCJK1/clickmarkers">Source code</a>.</footer>
+</main>
+
+<script>
+// The main screen's parts: where each sits on the 1920 x 1080 screenshot of the demo (percent) and what it does.
+const PARTS = [
+  { x: 10.9, y: 1.0, w: 10.6, h: 3.0, t: 'Open or paused', d: 'Whether the office is taking work, and how many desks are working now. Click it to pause the office: nothing new starts, work in hand finishes. Click again to open.' },
+  { x: 47.4, y: 0.8, w: 40.8, h: 3.6, t: 'The views', d: 'War room is home. In-tray (the number is drafts waiting for you), Board, Ledger, Numbers, Calendar, Brain and Routines each slide in from the right.' },
+  { x: 89.0, y: 0.6, w: 6.8, h: 4.0, t: 'Your meter', d: 'API today: money spent on your API key today, against the daily ceiling, and how many runs. Past the ceiling, new jobs wait until midnight.' },
+  { x: 0.9, y: 10.2, w: 19.4, h: 51.8, t: 'Executive suite', d: 'The chief of staff and the six department leads: model, what each did last, today\'s spend. Click a card to open the desk; the arrow under it shows the team.' },
+  { x: 0.9, y: 63.9, w: 19.4, h: 33.3, t: 'Live logs', d: 'Everything the office does, line by line, newest at the bottom. With a desk open it shows that desk only. Scroll up to hold still; Jump to latest brings you back.' },
+  { x: 21.4, y: 10.2, w: 54.4, h: 72.7, t: 'The war room', d: 'A live map of the desks: the chief of staff in the middle, a lead for each department, their desks round them. Click a pod to open it. The ring colour shows its state (see "What the colours mean").' },
+  { x: 21.4, y: 83.4, w: 54.4, h: 3.4, t: 'Connectors', d: 'The outside tools the desks use: Drive, Canva, Meta and the rest. Orange means one is failing. Details lists them all; Check now tests them (a minute or two).' },
+  { x: 21.4, y: 88.6, w: 54.4, h: 9.0, t: 'The job bar', d: 'Type a job in plain words and press Send. Who, Model, Effort, Later and Big editor are under it. See "Give the office a job".' },
+  { x: 76.7, y: 10.2, w: 22.4, h: 88.4, t: 'Telemetry', d: 'Your ads and leads at a glance: spend today and over 7 days, spend by ad, new leads, who is waiting on you, stuck leads and posts booked. The numbers come from your stats file; Refresh appears when you have set a tool that rewrites it.' },
+];
+const shot = document.getElementById('tour-shot'), zone = document.getElementById('zone'), key = document.getElementById('tour-key');
+const dots = [], rows = [];
+let on = -1;
+function pick(i) {
+  on = on === i ? -1 : i;
+  dots.forEach((d, j) => { d.classList.toggle('on', j === on); d.setAttribute('aria-pressed', String(j === on)); });
+  rows.forEach((r, j) => { r.classList.toggle('on', j === on); r.setAttribute('aria-expanded', String(j === on)); });
+  if (on < 0) { zone.classList.remove('on'); return; }
+  const p = PARTS[on];
+  Object.assign(zone.style, { left: p.x + '%', top: p.y + '%', width: p.w + '%', height: p.h + '%' });
+  zone.classList.add('on');
+}
+PARTS.forEach((p, i) => {
+  const d = document.createElement('button');
+  d.type = 'button'; d.className = 'dot'; d.textContent = i + 1; d.setAttribute('aria-label', `${i + 1}: ${p.t}`); d.setAttribute('aria-pressed', 'false');
+  d.style.left = (p.x + Math.min(p.w, 3) / 2 + 0.6) + '%'; d.style.top = (p.y + Math.min(p.h, 6) / 2 + (p.h > 6 ? 1.5 : 0)) + '%';
+  d.addEventListener('click', () => pick(i)); shot.appendChild(d); dots.push(d);
+  const li = document.createElement('li'); const b = document.createElement('button');
+  b.type = 'button'; b.setAttribute('aria-expanded', 'false');
+  b.innerHTML = `<span class="n">${i + 1}</span><span><b></b><span class="more"></span></span>`;
+  b.querySelector('b').textContent = p.t; b.querySelector('.more').textContent = p.d;
+  b.addEventListener('click', () => pick(i)); li.appendChild(b); key.appendChild(li); rows.push(b);
+});
+pick(5);
+</script>

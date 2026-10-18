@@ -1,0 +1,14 @@
+{
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "no-undef": "error",
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/no-useless-spread": "off",
+    "unicorn/no-new-array": "off",
+    "no-control-regex": "off"
+  }
+}

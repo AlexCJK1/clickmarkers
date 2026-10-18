@@ -1,0 +1,26 @@
+{
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "globals": {
+    "fetch": "readonly",
+    "FormData": "readonly",
+    "Blob": "readonly",
+    "AbortController": "readonly",
+    "AbortSignal": "readonly",
+    "URL": "readonly",
+    "URLSearchParams": "readonly",
+    "structuredClone": "readonly",
+    "SharedArrayBuffer": "readonly",
+    "Atomics": "readonly"
+  },
+  "rules": {
+    "no-undef": "error",
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/no-useless-spread": "off",
+    "unicorn/no-new-array": "off",
+    "no-control-regex": "off"
+  }
+}

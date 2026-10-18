@@ -1,0 +1,15 @@
+{
+ "ad-review": {
+  "title": "Ad review: {topic}",
+  "owner": "mlead",
+  "text": "Review the ads on: {topic}. ADS reads the numbers; you write the one change worth making under AFTER YOUR OK, or say no change.",
+  "steps": [
+   {
+    "id": "numbers",
+    "agent": "ada",
+    "title": "Ad numbers: {topic}",
+    "text": "Read the ads for the last 7 days: spend, reach, enquiries and cost per enquiry per ad, and the one change the numbers point to. NOTHING TO SEND."
+   }
+  ]
+ }
+}

@@ -1,0 +1,47 @@
+Clickmarkers
+Copyright (C) 2026 Alex Cojoaca
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero
+General Public License as published by the Free Software Foundation, version 3 (see LICENSE).
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+License for more details.
+
+
+ADDITIONAL TERMS (section 7 of the GNU AGPL 3.0)
+
+These terms apply to every file in this repository and to any work based on it.
+
+1. Author attribution (section 7(b)). Any copy or modified version of this program must keep the line
+   "Clickmarkers by Alex Cojoaca", with a link to https://github.com/AlexCJK1/clickmarkers, in the program's
+   Appropriate Legal Notices: its About section (in this code, the About part of the Keys and help panel,
+   ui/src/components/Help.jsx) and this NOTICE file. Nothing else is required: no badge, no README line.
+   A modified version may add its own name and authors next to it.
+
+2. Marking modified versions (section 7(c)). A modified version that is distributed or offered as a service
+   must be marked as different from the original: it must not be called "Clickmarkers", and it may say that
+   it is "based on Clickmarkers".
+
+3. Additional permission (section 7). As a special exception, you may combine this program with the Claude
+   Agent SDK and Claude Code, which are Anthropic's and come under Anthropic's own terms, and convey the
+   combination. The AGPL does not apply to those parts; it still applies to this program and your changes to it.
+
+4. Trademarks (section 7(e)). This licence grants no right to use the name "Clickmarkers", or any logo or
+   mark of the project, under trademark law. See TRADEMARKS.md.
+
+
+COMMERCIAL LICENCE
+
+If the AGPL does not suit you (for example, you want to offer a changed version as a hosted service without
+publishing your changes), a commercial licence is available. Write to cojoaca.alex@gmail.com with
+"Commercial licence" in the subject.
+
+
+THIRD-PARTY SOFTWARE
+
+Clickmarkers depends on packages installed from npm (see package.json and package-lock.json), each under its
+own licence. The Claude Agent SDK and the Claude Code program it runs are Anthropic's, under Anthropic's
+terms. The guide in docs/guide includes the Inter, Archivo and JetBrains Mono fonts, under the SIL Open Font
+License 1.1 (docs/guide/fonts, with each licence). No other third-party code or artwork is in this
+repository.

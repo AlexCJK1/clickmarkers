@@ -1,0 +1,75 @@
+{
+ "routines": [
+  {
+   "id": "connector-check",
+   "dept": "exec",
+   "agent": "cos",
+   "title": "Connector check: every tool a desk uses, probed; the phone hears only what is off",
+   "text": "",
+   "when": {
+    "kind": "daily",
+    "at": "07:30"
+   },
+   "needsOk": false,
+   "paused": false,
+   "kind": "probe"
+  },
+  {
+   "id": "ad-pacing",
+   "dept": "marketing",
+   "agent": "ada",
+   "title": "Morning ad pacing: per ad, and the change to propose if one is due",
+   "text": "Read the ads for yesterday and this week: spend, reach, enquiries and cost per enquiry for each ad. If one ad costs more than twice the target per enquiry for three days, propose pausing it under AFTER YOUR OK. Otherwise say no change.",
+   "when": {
+    "kind": "daily",
+    "at": "08:00"
+   },
+   "needsOk": true,
+   "paused": false,
+   "model": "sonnet"
+  },
+  {
+   "id": "daily-brief",
+   "dept": "exec",
+   "agent": "cos",
+   "title": "Daily brief for the owner: what moved, what is waiting, what needs a decision",
+   "text": "Read today's lines in 00-Meta/numbers-ledger.md, 60-Accounts/open-items.md and the in-tray. Five lines: what moved, what is waiting for the owner, the one decision for today.",
+   "when": {
+    "kind": "daily",
+    "at": "08:15"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "inbox-digest",
+   "dept": "inbox",
+   "agent": "inbox",
+   "title": "Inbox digest: customers, suppliers, platform notices, what needs the owner",
+   "text": "Read the last 24 hours of the business mailbox. Sort into customers, suppliers and notices, draft a reply to each quote request, and list what needs the owner first.",
+   "when": {
+    "kind": "daily",
+    "at": "09:00"
+   },
+   "needsOk": false,
+   "paused": false
+  },
+  {
+   "id": "week-plan",
+   "dept": "marketing",
+   "agent": "mlead",
+   "title": "Plan next week's posts: captions, visuals, slots, ready to post",
+   "text": "Plan the Page for the coming week, one post a day at 18:00: the words, the visual and the slot for each. Hand the owner each post ready to go. Nothing is posted or scheduled without the owner's OK.",
+   "when": {
+    "kind": "weekly",
+    "at": "18:00",
+    "days": [
+     0
+    ]
+   },
+   "needsOk": true,
+   "paused": false,
+   "model": "sonnet"
+  }
+ ]
+}

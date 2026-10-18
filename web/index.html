@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clickmarkers</title>
+<style>
+  :root { --bg: #0b1220; --ink: #e6edf6; --muted: #9fb0c6; --line: #22324a; }
+  @media (prefers-color-scheme: light) { :root { --bg: #f4f7fb; --ink: #0b1220; --muted: #4a5a70; --line: #d5dde8; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+    background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 34rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 12px; }
+  code { background: var(--line); padding: 2px 6px; border-radius: 4px; }
+  .small { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Clickmarkers is running, but its page is not built yet</h1>
+  <p>In the Clickmarkers folder, run <code>npm run build</code>. This page reloads itself when the build is there.</p>
+  <p class="small">The office works without the page: routines, the phone and the command line carry on.</p>
+</main>
+<script>
+// Shown only when web/dist is missing. /api/health carries a build id (the hash of the page being served), so
+// when the build lands the id changes and the page reloads once. It cannot loop: only for an id it has not
+// reloaded for, never twice within a minute, and not at all without session storage.
+let knownBuild = '';
+function seeBuild(id) {
+  if (!id || typeof id !== 'string') return false; if (!knownBuild) { knownBuild = id; return false; } if (id === knownBuild) return false;
+  try { const [was, at] = String(sessionStorage.getItem('cm.reloadedFor') || '').split('@'); if (was === id || Date.now() - (+at || 0) < 60000) return false; sessionStorage.setItem('cm.reloadedFor', id + '@' + Date.now()); } catch (e) { return false; }
+  location.reload(); return true;
+}
+async function look() {
+  try { const health = await fetch('/api/health').then(r => r.json()); seeBuild(health && health.build); } catch (e) { /* the office is restarting: try again */ }
+}
+look();
+setInterval(look, 5000);
+</script>
+</body>
+</html>

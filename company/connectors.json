@@ -1,0 +1,807 @@
+{
+ "meta-ads-remote": {
+  "label": "Meta Ads (direct)",
+  "type": "http",
+  "url": "https://mcp.facebook.com/ads",
+  "auth": "bearer",
+  "disabled": false,
+  "verified": true,
+  "notes": "Meta's own Ads MCP (https://mcp.facebook.com/ads). Needs a user token with ads_mcp_management (plus ads_read, ads_management, business_management, pages_show_list) in META_MCP_TOKEN; the Marketing API token in META_ADS_TOKEN is rejected with 401. Until the token exists the key is skipped. Only the tools in \"only\" are in a desk's context (the rest are removed by name); a desk can narrow further with toolsOnly.",
+  "headers": {
+   "Authorization": "Bearer ${META_MCP_TOKEN}"
+  },
+  "readOnly": [
+   "ads_get_*",
+   "ads_insights_*",
+   "ads_library_search",
+   "ads_catalog_get_*",
+   "ads_catalog_list_*",
+   "ads_experiment_list_tests",
+   "ads_experiment_*_get_test",
+   "ads_pixel_*_read",
+   "ads_account_get_activity_logs"
+  ],
+  "outbound": [
+   "ads_create_*",
+   "ads_update_*",
+   "ads_activate_*",
+   "ads_boost_*",
+   "ads_creative_*",
+   "ads_delete_*",
+   "ads_experiment_*",
+   "ads_catalog_*",
+   "ads_pixel_*"
+  ],
+  "known": [
+   "ads_account_get_activity_logs",
+   "ads_activate_entity",
+   "ads_boost_ig_post",
+   "ads_catalog_create",
+   "ads_catalog_create_feed_rule",
+   "ads_catalog_create_product_feed",
+   "ads_catalog_create_product_feed_upload_session",
+   "ads_catalog_create_product_set",
+   "ads_catalog_delete_product",
+   "ads_catalog_event_source_connect",
+   "ads_catalog_event_source_disconnect",
+   "ads_catalog_event_source_get",
+   "ads_catalog_event_source_get_catalogs",
+   "ads_catalog_event_source_get_health",
+   "ads_catalog_event_source_get_recommendations",
+   "ads_catalog_get_businesses",
+   "ads_catalog_get_data_sources",
+   "ads_catalog_get_diagnostics",
+   "ads_catalog_get_dynamic_ads_health",
+   "ads_catalog_get_feed_rules",
+   "ads_catalog_get_product_feed_upload_sessions",
+   "ads_catalog_list_catalogs",
+   "ads_catalog_list_dpa_eligible_catalogs",
+   "ads_catalog_list_partner_integrations",
+   "ads_catalog_list_product_feeds",
+   "ads_catalog_list_product_sets",
+   "ads_catalog_list_products",
+   "ads_catalog_product_create",
+   "ads_catalog_product_feed_delete",
+   "ads_catalog_product_feed_delete_rule",
+   "ads_catalog_product_set_delete",
+   "ads_catalog_update_catalog",
+   "ads_catalog_update_product",
+   "ads_catalog_update_product_feed",
+   "ads_catalog_update_product_set",
+   "ads_create_ad",
+   "ads_create_ad_set",
+   "ads_create_campaign",
+   "ads_create_creative",
+   "ads_create_custom_audience",
+   "ads_creative_delete",
+   "ads_creative_update",
+   "ads_creative_upload_local_image",
+   "ads_creative_upload_media",
+   "ads_delete_custom_audience",
+   "ads_delete_local_ad_image",
+   "ads_experiment_abtest_create_test",
+   "ads_experiment_abtest_get_test",
+   "ads_experiment_abtest_update_test",
+   "ads_experiment_check_eligibility",
+   "ads_experiment_lift_create_test",
+   "ads_experiment_lift_get_test",
+   "ads_experiment_list_tests",
+   "ads_finalize_local_ad_image_upload",
+   "ads_get_ad_account_custom_audiences",
+   "ads_get_ad_account_pages",
+   "ads_get_ad_accounts",
+   "ads_get_ad_entities",
+   "ads_get_ad_images",
+   "ads_get_ad_preview",
+   "ads_get_ad_preview_screenshot",
+   "ads_get_ad_videos",
+   "ads_get_creative_ads",
+   "ads_get_creatives",
+   "ads_get_custom_audience",
+   "ads_get_custom_audience_adsets",
+   "ads_get_customconversions",
+   "ads_get_dataset_details",
+   "ads_get_dataset_quality",
+   "ads_get_dataset_stats",
+   "ads_get_datasets",
+   "ads_get_errors",
+   "ads_get_field_context",
+   "ads_get_help_article",
+   "ads_get_ig_accounts",
+   "ads_get_ig_media",
+   "ads_get_opportunity_score",
+   "ads_get_pages_for_business",
+   "ads_get_user_pages",
+   "ads_insights_advertiser_context",
+   "ads_insights_anomaly_signal",
+   "ads_insights_auction_ranking_benchmarks",
+   "ads_insights_industry_benchmark",
+   "ads_insights_performance_trend",
+   "ads_library_search",
+   "ads_log_ui_interaction",
+   "ads_pixel_event_create",
+   "ads_pixel_event_delete",
+   "ads_pixel_event_read",
+   "ads_pixel_event_update",
+   "ads_pixel_parameter_create",
+   "ads_pixel_parameter_delete",
+   "ads_pixel_parameter_read",
+   "ads_pixel_parameter_update",
+   "ads_update_custom_audience",
+   "ads_update_custom_audience_users",
+   "ads_update_entity"
+  ],
+  "only": [
+   "ads_get_ad_accounts",
+   "ads_get_ad_entities",
+   "ads_get_creatives",
+   "ads_get_creative_ads",
+   "ads_get_ad_preview",
+   "ads_get_ad_images",
+   "ads_get_ad_videos",
+   "ads_insights_performance_trend",
+   "ads_insights_anomaly_signal",
+   "ads_insights_advertiser_context",
+   "ads_get_opportunity_score",
+   "ads_get_errors",
+   "ads_get_help_article",
+   "ads_get_field_context",
+   "ads_update_entity",
+   "ads_activate_entity",
+   "ads_create_campaign",
+   "ads_create_ad_set",
+   "ads_create_ad",
+   "ads_create_creative",
+   "ads_creative_upload_media",
+   "ads_get_pages_for_business",
+   "ads_get_ad_account_pages"
+  ]
+ },
+ "canva-remote": {
+  "label": "Canva (direct)",
+  "type": "http",
+  "url": "https://mcp.canva.com/mcp",
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "notes": "Canva, signed in once through Claude Code (/mcp) and reused by the office. Designs, exports, resizing, brand kit, assets. The generators (generate-design, generate-image) are left out: posts come from the house templates.",
+  "outbound": [
+   "publish-*",
+   "comment-on-design",
+   "reply-to-comment",
+   "request-outline-review",
+   "edit-*",
+   "upload-*",
+   "import-*",
+   "move-*",
+   "create-*",
+   "copy-*",
+   "merge-*",
+   "resize-*",
+   "comment-*",
+   "reply-*",
+   "generate-*",
+   "remove-*",
+   "separate-*",
+   "request-*"
+  ],
+  "known": [
+   "comment-on-design",
+   "copy-design",
+   "create-brand-template-draft",
+   "create-design",
+   "create-design-from-brand-template",
+   "create-design-from-candidate",
+   "create-folder",
+   "create-upload-url",
+   "edit-design",
+   "export-design",
+   "generate-design",
+   "generate-design-structured",
+   "generate-image",
+   "get-assets",
+   "get-brand-template-dataset",
+   "get-create-design-async-job",
+   "get-design-dataset",
+   "get-export-formats",
+   "get-generate-image-job",
+   "get-separate-image-layers-job",
+   "help",
+   "import-design-from-url",
+   "list-brand-kits",
+   "list-comments",
+   "list-folder-items",
+   "list-replies",
+   "merge-designs",
+   "move-item-to-folder",
+   "publish-brand-template",
+   "read-design",
+   "remove-background",
+   "reply-to-comment",
+   "request-outline-review",
+   "resize-design",
+   "resolve-shortlink",
+   "search-brand-templates",
+   "search-designs",
+   "search-folders",
+   "separate-image-layers",
+   "upload-asset-from-url"
+  ],
+  "only": [
+   "search-designs",
+   "read-design",
+   "get-export-formats",
+   "export-design",
+   "resize-design",
+   "copy-design",
+   "list-brand-kits",
+   "search-brand-templates",
+   "create-design-from-brand-template",
+   "get-assets",
+   "upload-asset-from-url",
+   "create-upload-url",
+   "create-folder",
+   "list-folder-items",
+   "search-folders",
+   "move-item-to-folder",
+   "import-design-from-url",
+   "remove-background",
+   "help"
+  ]
+ },
+ "figma-remote": {
+  "label": "Figma (direct)",
+  "type": "http",
+  "url": "https://mcp.figma.com/mcp",
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "outbound": [
+   "use_figma",
+   "create_*",
+   "update_*",
+   "upload_*",
+   "send_*",
+   "add_*",
+   "generate_*",
+   "export_video",
+   "weave_*"
+  ],
+  "notes": "Figma, signed in once through Claude Code (/mcp) and reused by the office. Read-only on desks: the mocks, screenshots, variables, the design system.",
+  "known": [
+   "add_code_connect_map",
+   "create_generative_plugin",
+   "create_new_file",
+   "create_shader",
+   "download_assets",
+   "export_video",
+   "generate_diagram",
+   "generate_image",
+   "get_code_connect_map",
+   "get_code_connect_suggestions",
+   "get_context_for_code_connect",
+   "get_design_context",
+   "get_figjam",
+   "get_figma_skill",
+   "get_generative_plugin",
+   "get_libraries",
+   "get_metadata",
+   "get_motion_context",
+   "get_screenshot",
+   "get_shader",
+   "get_variable_defs",
+   "list_file_components_for_code_connect",
+   "list_file_shaders",
+   "list_generative_plugins",
+   "list_shaders",
+   "search_design_system",
+   "send_code_connect_mappings",
+   "update_generative_plugin",
+   "update_shader",
+   "upload_assets",
+   "use_figma",
+   "weave_cancel_tool_run",
+   "weave_find_model",
+   "weave_get_model_run_output",
+   "weave_get_tool_inputs",
+   "weave_get_tool_run_output",
+   "weave_list_tools",
+   "weave_run_model",
+   "weave_run_tool",
+   "weave_upload_asset",
+   "whoami"
+  ],
+  "only": [
+   "get_design_context",
+   "get_screenshot",
+   "get_metadata",
+   "get_figjam",
+   "get_variable_defs",
+   "search_design_system",
+   "get_libraries",
+   "get_figma_skill",
+   "download_assets",
+   "whoami"
+  ]
+ },
+ "cloudflare-remote": {
+  "label": "Cloudflare API (direct)",
+  "type": "http",
+  "url": "https://mcp.cloudflare.com/mcp",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${CLOUDFLARE_API_TOKEN}"
+  },
+  "notes": "search() and execute() over the Cloudflare API with an API token in CLOUDFLARE_API_TOKEN (wrangler's own login is not a token). Enable this for site and Worker work.",
+  "outbound": [
+   "execute"
+  ]
+ },
+ "notion": {
+  "label": "Notion",
+  "private": true,
+  "type": "http",
+  "url": "https://mcp.notion.com/mcp",
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "outbound": [
+   "notion-create-*",
+   "notion-update-*"
+  ]
+ },
+ "hubspot": {
+  "label": "HubSpot",
+  "private": true,
+  "type": "http",
+  "url": "https://mcp.hubspot.com",
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "outbound": [
+   "manage_*"
+  ]
+ },
+ "buffer": {
+  "label": "Buffer",
+  "type": "http",
+  "url": "https://mcp.buffer.com/mcp",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": false,
+  "headers": {
+   "Authorization": "Bearer ${BUFFER_API_KEY}"
+  },
+  "notes": "Buffer's MCP server, for scheduling posts to a Facebook Page, Instagram and other channels. Not yet tested with Clickmarkers: check how it signs in before you switch it on. Every create, edit or delete waits for the owner's OK.",
+  "outbound": [
+   "create_post",
+   "edit_post",
+   "delete_post",
+   "execute_mutation",
+   "create_*",
+   "update_*",
+   "delete_*"
+  ]
+ },
+ "resend": {
+  "label": "Resend",
+  "private": true,
+  "type": "http",
+  "url": "https://mcp.resend.com/mcp",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${RESEND_API_KEY}"
+  },
+  "outbound": [
+   "send-*",
+   "create-*",
+   "update-*",
+   "remove-*",
+   "publish-*",
+   "verify-*"
+  ]
+ },
+ "posthog": {
+  "label": "PostHog",
+  "private": true,
+  "type": "http",
+  "url": "https://mcp.posthog.com/mcp?readonly=true",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${POSTHOG_API_KEY}"
+  },
+  "outbound": []
+ },
+ "github": {
+  "label": "GitHub",
+  "private": true,
+  "type": "http",
+  "url": "https://api.githubcopilot.com/mcp/",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${GITHUB_PAT}",
+   "X-MCP-Readonly": "true"
+  },
+  "notes": "GitHub's own MCP server, read-only by the X-MCP-Readonly header. The IT office template uses it.",
+  "outbound": []
+ },
+ "stripe": {
+  "label": "Stripe",
+  "private": true,
+  "type": "http",
+  "url": "https://mcp.stripe.com",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${STRIPE_AGENT_KEY}"
+  },
+  "notes": "Stripe's own MCP server, on a restricted key in STRIPE_AGENT_KEY. Anything that writes or moves money waits for the owner's OK.",
+  "outbound": [
+   "stripe_api_write",
+   "send_money",
+   "transfer_money",
+   "setup_recipient"
+  ]
+ },
+ "google-gmail": {
+  "label": "Gmail (Google MCP)",
+  "private": true,
+  "type": "http",
+  "url": "https://gmailmcp.googleapis.com/mcp/v1",
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "notes": "Google's own Gmail MCP (Developer Preview): needs a paid Google Workspace account (the preview refuses Gmail addresses), so it stays off; the office reads its mailbox through mail instead",
+  "outbound": [
+   "send_*",
+   "trash_*",
+   "delete_*"
+  ]
+ },
+ "google-drive": {
+  "label": "Google Drive",
+  "private": true,
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/google.mjs",
+   "drive"
+  ],
+  "own": true,
+  "needs": [
+   "GOOGLE_OAUTH_CLIENT_ID",
+   "GOOGLE_OAUTH_CLIENT_SECRET",
+   "GOOGLE_REFRESH_TOKEN"
+  ],
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "readOnly": [
+   "drive_search",
+   "drive_read"
+  ],
+  "outbound": [
+   "drive_create_file",
+   "drive_create_folder",
+   "drive_update_file",
+   "drive_move",
+   "drive_share"
+  ],
+  "notes": "The office's own Google connector, signed in as the office account (clickmarkers connect google). Free: drive_search, drive_read. After the owner's OK: drive_create_file, drive_create_folder, drive_update_file, drive_move, drive_share (drive_share emails the person). Nothing can be deleted."
+ },
+ "google-docs": {
+  "label": "Google Docs",
+  "private": true,
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/google.mjs",
+   "docs"
+  ],
+  "own": true,
+  "needs": [
+   "GOOGLE_OAUTH_CLIENT_ID",
+   "GOOGLE_OAUTH_CLIENT_SECRET",
+   "GOOGLE_REFRESH_TOKEN"
+  ],
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "readOnly": [
+   "docs_read"
+  ],
+  "outbound": [
+   "docs_create",
+   "docs_append",
+   "docs_replace_text"
+  ],
+  "notes": "The office's own Google connector (clickmarkers connect google). Free: docs_read. After the owner's OK: docs_create, docs_append, docs_replace_text (docs_create takes markdown)."
+ },
+ "google-sheets": {
+  "label": "Google Sheets",
+  "private": true,
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/google.mjs",
+   "sheets"
+  ],
+  "own": true,
+  "needs": [
+   "GOOGLE_OAUTH_CLIENT_ID",
+   "GOOGLE_OAUTH_CLIENT_SECRET",
+   "GOOGLE_REFRESH_TOKEN"
+  ],
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "readOnly": [
+   "sheets_read",
+   "sheets_info"
+  ],
+  "outbound": [
+   "sheets_create",
+   "sheets_add_tab",
+   "sheets_write",
+   "sheets_append"
+  ],
+  "notes": "The office's own Google connector (clickmarkers connect google). Free: sheets_info, sheets_read. After the owner's OK: sheets_create, sheets_add_tab, sheets_write, sheets_append; values are stored exactly as given unless parse is true."
+ },
+ "google-calendar": {
+  "label": "Google Calendar",
+  "private": true,
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/google.mjs",
+   "calendar"
+  ],
+  "own": true,
+  "needs": [
+   "GOOGLE_OAUTH_CLIENT_ID",
+   "GOOGLE_OAUTH_CLIENT_SECRET",
+   "GOOGLE_REFRESH_TOKEN"
+  ],
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "readOnly": [
+   "calendar_events"
+  ],
+  "outbound": [
+   "calendar_add",
+   "calendar_update",
+   "calendar_invite"
+  ],
+  "notes": "The office's own Google connector (clickmarkers connect google). Free: calendar_events. After the owner's OK: calendar_add and calendar_update (no guests, nobody told), calendar_invite (Google emails each guest). Office time is Europe/London."
+ },
+ "browser": {
+  "label": "Browser (Playwright)",
+  "web": true,
+  "type": "stdio",
+  "command": "npx",
+  "args": [
+   "-y",
+   "@playwright/mcp@0.0.83",
+   "--isolated",
+   "--viewport-size",
+   "1280x900"
+  ],
+  "verified": true,
+  "notes": "a real Chromium with a fresh, empty profile on every run (--isolated: signed in nowhere); for reading pages and sites. Before the owner's OK only the reading tools below work; clicking, typing, filling forms, running code and uploads are outbound.",
+  "readOnly": [
+   "browser_navigate",
+   "browser_navigate_back",
+   "browser_snapshot",
+   "browser_take_screenshot",
+   "browser_tabs",
+   "browser_wait_for",
+   "browser_console_messages",
+   "browser_network_requests",
+   "browser_resize",
+   "browser_close"
+  ]
+ },
+ "browser-preview": {
+  "label": "Browser, your own app only",
+  "type": "stdio",
+  "command": "npx",
+  "args": [
+   "-y",
+   "@playwright/mcp@0.0.83",
+   "--isolated",
+   "--viewport-size",
+   "1280x900",
+   "--allowed-origins",
+   "http://localhost:3000"
+  ],
+  "readOnly": [
+   "browser_navigate",
+   "browser_navigate_back",
+   "browser_snapshot",
+   "browser_take_screenshot",
+   "browser_tabs",
+   "browser_wait_for",
+   "browser_console_messages",
+   "browser_network_requests",
+   "browser_resize",
+   "browser_close"
+  ],
+  "web": false,
+  "verified": false,
+  "notes": "A browser that may only open the origins in --allowed-origins (separate several with ;). Set them to your app's local and preview addresses. It cannot reach the open web, so a desk that reads private notes may use it."
+ },
+ "tiktok-ads": {
+  "label": "TikTok for Business",
+  "type": "http",
+  "url": "https://business-api.tiktok.com/open_mcp/tt-ads-mcp-layer",
+  "auth": "oauth",
+  "disabled": false,
+  "verified": true,
+  "notes": "TikTok's Ads MCP (progressive disclosure), signed in once through Claude Code (/mcp) and reused by the office. Desks get the read tools; creation waits for an ad account and the owner's OK.",
+  "outbound": [
+   "*_create",
+   "*_update",
+   "*_delete",
+   "*_status_update",
+   "smart_plus_*"
+  ],
+  "only": [
+   "*_get",
+   "*_list*",
+   "*_search",
+   "report_*",
+   "advertiser_info_get",
+   "bc_get"
+  ]
+ },
+ "google-ads": {
+  "label": "Google Ads",
+  "type": "stdio",
+  "command": "pipx",
+  "args": [
+   "run",
+   "--spec",
+   "git+https://github.com/googleads/google-ads-mcp.git@9a78cbdceebae71a6bc8483bdec333695834ef9c",
+   "google-ads-mcp"
+  ],
+  "env": {
+   "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}",
+   "GOOGLE_ADS_LOGIN_CUSTOMER_ID": "${GOOGLE_ADS_LOGIN_CUSTOMER_ID}"
+  },
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "notes": "Google's own Ads MCP, read-only (list_accessible_customers, search with GAQL, get_resource_metadata). Needs a Cloud project with Ads API access and `gcloud auth application-default login`; developer tokens were sunset 9 Sep 2026.",
+  "outbound": []
+ },
+ "ga4": {
+  "label": "Google Analytics 4",
+  "private": true,
+  "type": "stdio",
+  "command": "pipx",
+  "args": [
+   "run",
+   "analytics-mcp==0.7.0"
+  ],
+  "env": {
+   "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}"
+  },
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "notes": "Google's own GA4 MCP (experimental, read-only): run_report, run_realtime_report, run_funnel_report. ADC login with the analytics.readonly scope.",
+  "outbound": []
+ },
+ "x-ads": {
+  "label": "X Ads",
+  "type": "http",
+  "url": "https://ads-api.x.com/mcp",
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "notes": "X's own Ads MCP, 74 tools; needs an X developer app in an Ads project. Creates campaigns paused.",
+  "outbound": [
+   "create_*",
+   "update_*",
+   "delete_*"
+  ]
+ },
+ "snapchat-ads": {
+  "label": "Snapchat Ads",
+  "type": "http",
+  "url": "https://mcp.snapchat.com/ads",
+  "auth": "oauth",
+  "disabled": true,
+  "verified": true,
+  "notes": "Snap's own Ads MCP, read-only; an org admin approves the agent (client id claude-snap-ads).",
+  "outbound": []
+ },
+ "semrush": {
+  "label": "Semrush",
+  "type": "http",
+  "url": "https://mcp.semrush.com/v2/mcp",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Apikey ${SEMRUSH_API_KEY}"
+  },
+  "notes": "domain_overview, organic_research, keyword_research, competitors_research, backlinks_research, site_audit, position_tracking; needs a Semrush plan with API units.",
+  "outbound": []
+ },
+ "ahrefs": {
+  "label": "Ahrefs",
+  "type": "http",
+  "url": "https://api.ahrefs.com/mcp/mcp",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${AHREFS_API_KEY}"
+  },
+  "notes": "needs a paid Ahrefs plan; consumes API units.",
+  "outbound": []
+ },
+ "dataforseo": {
+  "label": "DataForSEO",
+  "type": "http",
+  "url": "https://mcp.dataforseo.com/mcp",
+  "auth": "basic",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Basic ${DATAFORSEO_BASIC}"
+  },
+  "notes": "pay as you go SERP, keyword, backlink and on-page data; DATAFORSEO_BASIC = base64(login:password).",
+  "outbound": []
+ },
+ "similarweb": {
+  "label": "Similarweb",
+  "type": "http",
+  "url": "https://mcp.similarweb.com",
+  "auth": "bearer",
+  "disabled": true,
+  "verified": true,
+  "headers": {
+   "Authorization": "Bearer ${SIMILARWEB_API_KEY}"
+  },
+  "notes": "traffic, sources, audience, SERP players; needs an API plan.",
+  "outbound": []
+ },
+ "mail": {
+  "label": "Mailbox (IMAP)",
+  "private": true,
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/mail.mjs"
+  ],
+  "own": true,
+  "needs": [
+   "MAIL_USER",
+   "MAIL_APP_PASSWORD"
+  ],
+  "verified": true,
+  "notes": "the office's own mailbox server, for any IMAP mailbox (Gmail with an app password, for example): mail_folders, mail_list, mail_search (Gmail search syntax works on Gmail), mail_read, mail_draft (files a draft in your Drafts folder), mail_send (after your OK).",
+  "readOnly": [
+   "mail_list",
+   "mail_search",
+   "mail_read",
+   "mail_folders",
+   "mail_draft"
+  ],
+  "outbound": [
+   "mail_send"
+  ]
+ }
+}

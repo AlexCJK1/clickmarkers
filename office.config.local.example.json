@@ -1,0 +1,27 @@
+{
+ "brain": "../my-office/brain",
+ "secretsFile": "../my-office/.secrets.local",
+ "company": "../my-office/company/company.json",
+ "routines": "../my-office/company/routines.json",
+ "workflows": "../my-office/company/workflows.json",
+ "connectors": "../my-office/company/connectors.json",
+ "data": "../my-office/data",
+ "media": {
+  "roots": [
+   "../my-office/brain"
+  ]
+ },
+ "files": {
+  "roots": [
+   "../my-office/brain"
+  ]
+ },
+ "google": {
+  "account": ""
+ },
+ "ledger": {
+  "ceilingUsd": 10,
+  "perRunUsd": 1.0,
+  "defaultAgentUsd": 2.0
+ }
+}
