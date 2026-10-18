@@ -11,12 +11,13 @@ import { Tickets, brief, draftHash } from './tickets.mjs';
 import { Routines } from './routines.mjs';
 import { Workflows } from './workflows.mjs';
 import { Vault } from '../brain/vault.mjs';
-import { Connectors } from '../engines/connectors.mjs';
+import { Connectors, bookingOf } from '../engines/connectors.mjs';
 import { Batches } from '../engines/messages.mjs';
 import { ConnectorHealth } from '../engines/health.mjs';
 import { runPhase, quickJson, quick } from '../engines/index.mjs';
-import { routingPrompt } from '../engines/prompt.mjs';
+import { routingPrompt, approvedSteps } from '../engines/prompt.mjs';
 import { fence } from '../core/guard.mjs';
+import { mediaPath, fileHash } from '../core/media.mjs';
 import { esc } from '../io/telegram.mjs';
 import { parseWhen, fmtAt } from '../core/when.mjs';
 import { Chat } from './chat.mjs';
@@ -24,6 +25,11 @@ import { slotsBetween, invalidWhen } from '../core/clock.mjs';
 import { ENGINES } from '../engines/index.mjs';
 import { EVALS_ID, evalSettings, evalOff, evaluate, evalLine, recordMiss, fixEmDashes, hasSteps } from './evals.mjs';
 import { otherModels } from '../engines/openrouter.mjs';
+
+const MAX_RUN_AHEAD = 60 * 86400000; // a booked run up to 60 days ahead
+const LATE_RUN_MS = 60 * 60000; // an approved step this late for its time is not run
+const META_AHEAD = 30 * 86400000; // Meta books a Facebook post up to 30 days ahead
+const NEAR_MS = 30 * 60000; // a time this near: the office waits for it, so a slow start never posts early
 
 const NOTHING = /^\s*nothing to send\.?\s*$/im;
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -35,9 +41,11 @@ export class Office {
     persistEvents(cfg.data);
     this.secretsLoaded = loadSecrets(cfg.secretsFile);
     this.company = new Company(cfg.company, { defaultAgentUsd: cfg.ledger.defaultAgentUsd });
-    this.connectors = new Connectors(cfg.connectors, { timezone: cfg.timezone });
+    this.connectors = new Connectors(cfg.connectors, { timezone: cfg.timezone, mediaRoots: cfg.media?.roots || [] });
     this.vault = new Vault(cfg.brain, cfg.notes);
     this.tickets = new Tickets(cfg.data);
+    // drafts waiting at start (recovered from a check cut off, or saved by an older version) are told when they run now
+    for (const t of this.tickets.list) if (t.state === 'waiting') t.runs = this.runsOf(t.draft);
     this.routines = new Routines(cfg.routines, cfg.data, cfg.timezone);
     this.workflows = new Workflows(cfg.workflows);
     this.ledger = new Ledger({ dir: cfg.data, tz: cfg.timezone, ...cfg.ledger, gbpPerUsd: cfg.fx.gbpPerUsd });
@@ -294,6 +302,20 @@ export class Office {
       if (started >= slots) break;
       const a = this.company.agent(t.agent);
       if (!a || a.paused || busy.has(a.id)) continue;
+      // An approved step booked for a time it has long missed (the office was off or paused) does not go out late:
+      // a Thursday 6pm post is no use on Saturday. It goes back to the in-tray; approving it again runs it then.
+      if (t.phase === 'execute' && t.runAt && Date.now() - t.runAt > LATE_RUN_MS) {
+        const why = `it was booked for ${fmtAt(t.runAt, this.cfg.timezone)} while the office was off or paused, so nothing went out. Send it back with a new time.`;
+        this.tickets.update(t.id, { state: 'waiting', runAt: 0, runs: this.runsOf(t.draft), note: why });
+        emit('run', { ticket: t.id, agent: t.agent, stage: 'waiting', why });
+        if (this.phone?.on) this.phone.notifyWaiting(this.tickets.get(t.id), a.name).catch(() => {});
+        continue;
+      }
+      // ...and one booked for later never runs early, whichever way it got here (cancelled and retried, say): it waits
+      if (t.phase === 'execute' && t.runAt && t.runAt > Date.now()) {
+        this.tickets.update(t.id, { state: 'scheduled', at: t.runAt });
+        continue;
+      }
       // a desk on another vendor's model (or a model on this machine) does not need room on the Anthropic API
       const other = (t.engine || a.engine) === 'openrouter' && t.phase !== 'execute' && otherModels(this.cfg);
       const pick = other?.ready ? { lane: other.lane } : this.lanes.pick(a);
@@ -541,6 +563,9 @@ export class Office {
     const a = this.company.agent(t.agent);
     const mine = t.runId; // a primitive: `t` is the stored ticket, so t.runId moves if the ticket is run again while a check is out
     const base = {
+      // an approved run that has run (or failed) is no longer a booking: a retry runs on the owner's word, not the clock.
+      // One sent back to wait for room on the API is still booked, so the late guard still holds it.
+      ...(phase === 'execute' && r.kind !== 'wait' ? { runAt: 0 } : {}),
       lane: r.lane,
       engine: r.engine,
       model: r.model,
@@ -668,12 +693,13 @@ export class Office {
           ...checked.patch,
           state: 'waiting',
           draft: text,
+          runs: this.runsOf(text),
           evalDraft: '',
           checking: false,
           pendingDraft: '',
           pendingFixed: [],
         });
-      } else this.tickets.update(id, { ...base, state: 'waiting', draft: text });
+      } else this.tickets.update(id, { ...base, state: 'waiting', draft: text, runs: this.runsOf(text) });
       emit('run', {
         ticket: id,
         agent: t.agent,
@@ -893,6 +919,40 @@ export class Office {
    * The owner's OK. `expect` is the hash of the draft he was looking at (the phone button carries it; so can the
    * page): if the ticket now holds a different draft, nothing is approved. What is frozen is what he saw.
    */
+  /**
+   * When a draft's steps would run once approved, for the owner to see before he approves and for approve() to hold:
+   * { at (the office waits for it; 0: on the OK), when, posts (the time the post goes out), postsWhen, held, hash }
+   * or { error, code }. The office waits for a time a tool cannot book itself (Instagram), and for any time under a
+   * quarter of an hour away, so nothing goes out early; a time Meta books (Facebook) it leaves to Meta.
+   */
+  runsOf(draft, now = Date.now()) {
+    const tz = this.cfg.timezone;
+    const hash = draftHash(draft);
+    const r = bookingOf(approvedSteps({ approvedDraft: draft }), this.connectors, tz);
+    if (r.error) return { error: r.error, code: 'time', hash };
+    const T = r.time;
+    if (T && now - T > LATE_RUN_MS)
+      return { error: `its time, ${fmtAt(T, tz)}, has passed; ask for a new time`, code: 'past', hash };
+    if (T && T - now > MAX_RUN_AHEAD)
+      return { error: `its time, ${fmtAt(T, tz)}, is more than 60 days away`, code: 'far', hash };
+    if (T && !r.waits && T - now > META_AHEAD)
+      return {
+        error: `its time, ${fmtAt(T, tz)}, is more than 30 days away; Facebook books posts up to 30 days ahead`,
+        code: 'far',
+        hash,
+      };
+    // any time still ahead that the office keeps (not Meta) is waited for, to the second: the server never posts early
+    const at = T > now && (r.waits || T - now <= NEAR_MS) ? T : 0;
+    return {
+      at,
+      ...(at ? { when: fmtAt(at, tz) } : {}),
+      posts: T,
+      ...(T ? { postsWhen: fmtAt(T, tz) } : {}),
+      held: r.held,
+      images: r.images,
+      hash,
+    };
+  }
   approve(id, expect = '') {
     const t = this.tickets.get(id);
     if (!t || t.state !== 'waiting') return null;
@@ -904,16 +964,37 @@ export class Office {
       e.code = 'stale';
       throw e;
     }
+    // When the steps run is worked out again now, from the draft itself: a time that cannot be read, has passed or is
+    // too far ahead approves nothing. A picture the steps name is held by its content from here on.
+    const refuse = (code, why) => {
+      const e = new Error(`Nothing was approved: ${why}. Send it back with that fixed.`);
+      e.code = code;
+      throw e;
+    };
+    const run = this.runsOf(t.draft);
+    if (run.error) refuse(run.code, run.error);
+    const pictures = {};
+    for (const f of run.images || []) {
+      const m = mediaPath(f, this.cfg.media?.roots || []);
+      const sum = m.real ? fileHash(m.real) : '';
+      if (!sum) refuse('picture', m.error || `${f} cannot be read`);
+      pictures[f] = sum;
+    }
+    const wait = !!run.at;
     this.tickets.update(id, {
-      state: 'next',
+      state: wait ? 'scheduled' : 'next',
+      ...(wait ? { at: run.at } : {}),
+      runAt: wait ? run.at : 0,
+      runs: run,
+      pictures,
       phase: 'execute',
       priority: 5,
       approvedAt: Date.now(),
       approvedDraft: t.draft,
       approvedHash: h,
     });
-    emit('approval', { ticket: id, agent: t.agent, verdict: 'approved', hash: h });
-    this.kick();
+    emit('approval', { ticket: id, agent: t.agent, verdict: 'approved', hash: h, ...(wait ? { at: run.at } : {}) });
+    if (!wait) this.kick();
     return t;
   }
   // a sent-back wrap-up is redone as a wrap-up, from the same child results
@@ -931,6 +1012,7 @@ export class Office {
       this.learn(t, note, 'reject').catch(e => log.warn('learn:', e.message));
     }
     this.tickets.update(id, {
+      runs: null,
       state: 'next',
       phase: t.phase === 'wrap' ? 'wrap' : 'draft',
       note: note ? 'sent back with a note' : 'sent back',

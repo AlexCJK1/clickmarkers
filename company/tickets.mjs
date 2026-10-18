@@ -292,6 +292,8 @@ export function brief(t) {
     evalProblems: t.evalProblems || [],
     evalLine: evalLine(t.eval),
     draftHash: t.state === 'waiting' ? draftHash(t.draft) : '',
+    // when it would run, only while it is about the draft on show (a draft changed since is not described by it)
+    runs: t.state === 'waiting' && t.runs?.hash === draftHash(t.draft) ? t.runs : null,
     text: String(t.text).slice(0, 600),
     result: String(t.state === 'waiting' ? t.draft : t.result).slice(0, 6000),
     note: t.note,

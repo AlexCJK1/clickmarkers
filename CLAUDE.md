@@ -1,6 +1,6 @@
 # Clickmarkers: working on this repo
 
-Clickmarkers is an AI marketing agency of desks that runs on the owner's own computer. Read `ARCHITECTURE.md`
+Clickmarkers is an AI marketing department of desks that runs on the owner's own computer. Read `ARCHITECTURE.md`
 first (how the parts fit) and `SECURITY.md` (what keeps it safe). Both are kept current.
 
 ## Rules of the house (for any agent or person editing this code)
@@ -36,7 +36,8 @@ first (how the parts fit) and `SECURITY.md` (what keeps it safe). Both are kept 
 - `company/evals.mjs`: the evaluations step between a draft and the owner.
 - `io/`: `server.mjs` (API, SSE, static, the token check), `telegram.mjs` (the phone).
 - `ui/`: the page (Vite + React + Tailwind + Three.js), built by `npm run build` into `web/dist/` (not in git).
-- `servers/`: the office's own MCP servers: `mail.mjs` (IMAP), `google.mjs` + `google-tools.mjs`.
+- `servers/`: the office's own MCP servers: `mail.mjs` (IMAP), `google.mjs` + `google-tools.mjs`, `meta.mjs` +
+  `meta-tools.mjs` (Facebook Page and Instagram).
 - `bin/clickmarkers.mjs`: demo, serve, check, run, tickets, ledger, routines, connect.
 - `scripts/`: the demo seed and show, the Windows start scripts, tools.
 

@@ -346,7 +346,8 @@
    "budgetUsd": 2.5,
    "tools": [
     "meta-ads-remote",
-    "canva-remote"
+    "canva-remote",
+    "meta-pages"
    ],
    "office": [
     "brain_read",
@@ -366,7 +367,7 @@
     "40-Marketing/page-schedule.md",
     "10-Business/facts.md"
    ],
-   "does": "Runs the Page, the ads and the visuals. Plans one post a day a week ahead, each ready to post and on a tracked link.",
+   "does": "Runs the Page, the ads and the visuals. Plans one post a day a week ahead, each ready to post and on a tracked link, and posts them on the Facebook Page and Instagram after the owner's OK.",
    "brief": "Read 40-Marketing/rulings.md before every task. The offer leads: what is cleaned, the area, the price from the list. Plan the week as a team: CONTENT writes, RULINGS CHECK checks, DESIGN makes the visual, you choose. Anything that goes live goes under AFTER YOUR OK."
   },
   {

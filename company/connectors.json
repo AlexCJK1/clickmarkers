@@ -157,6 +157,53 @@
    "ads_get_ad_account_pages"
   ]
  },
+ "meta-pages": {
+  "label": "Facebook Page and Instagram",
+  "type": "stdio",
+  "command": "node",
+  "args": [
+   "{root}/servers/meta.mjs"
+  ],
+  "own": true,
+  "media": true,
+  "needs": [
+   "META_PAGE_TOKEN"
+  ],
+  "auth": "bearer",
+  "disabled": false,
+  "verified": true,
+  "readOnly": [
+   "social_accounts",
+   "page_posts",
+   "page_scheduled",
+   "ig_posts"
+  ],
+  "outbound": [
+   "page_post",
+   "ig_post"
+  ],
+  "verbatim": [
+   "message",
+   "caption",
+   "altText",
+   "link",
+   "image",
+   "imageUrl",
+   "at"
+  ],
+  "waits": [
+   "ig_post"
+  ],
+  "words": [
+   "message",
+   "caption",
+   "altText"
+  ],
+  "files": [
+   "image"
+  ],
+  "notes": "The office's own connector for the business's Facebook Page and the Instagram account linked to it (Meta's Graph API, a Page token in META_PAGE_TOKEN: docs/meta.md). Free: social_accounts, page_posts, page_scheduled, ig_posts. After the owner's OK, only exactly as the approved steps write them, arguments as JSON, each once: page_post (now, or booked with Meta via at, 10 minutes to 30 days ahead) and ig_post (now, or at its at: the office waits and posts it then). Pictures from the media folders or a public https link. Nothing can be deleted. Separate from Meta Ads, which cannot post to a Page."
+ },
  "canva-remote": {
   "label": "Canva (direct)",
   "type": "http",

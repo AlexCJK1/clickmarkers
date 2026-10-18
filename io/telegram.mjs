@@ -11,6 +11,7 @@ import { transcribeLocal, available as voiceAvailable } from './transcribe.mjs';
 import { parseAt, fmtAt } from '../core/when.mjs';
 import { evalLine, afterOkAt, EVALS_ID } from '../company/evals.mjs';
 import { draftHash } from '../company/tickets.mjs';
+import { mediaFile } from '../core/media.mjs';
 
 const API = 'https://api.telegram.org';
 const MAX = 3500;
@@ -19,30 +20,7 @@ export const esc = s =>
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-/**
- * The real path of a picture or video the phone may be sent, or '': the file, links followed, must sit inside one
- * of the media roots (a sibling folder that only starts with the same letters, /media-private for /media, does not count).
- */
-export function mediaFile(f, roots) {
-  let real;
-  try {
-    real = fs.realpathSync.native(path.resolve(f));
-  } catch {
-    return '';
-  }
-  const win = process.platform === 'win32';
-  for (const root of roots) {
-    let r;
-    try {
-      r = fs.realpathSync.native(path.resolve(root));
-    } catch {
-      continue;
-    }
-    const rel = path.relative(win ? r.toLowerCase() : r, win ? real.toLowerCase() : real);
-    if (rel && rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel)) return real;
-  }
-  return '';
-}
+export { mediaFile };
 const clip = (s, n = MAX) => {
   s = String(s || '');
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -158,14 +136,25 @@ export class Phone {
   async notifyWaiting(t, agentName) {
     if (!this.on || !t) return;
     const checked = evalLine(t.eval, this.office.company.agent(EVALS_ID)?.name || 'EVALUATIONS'); // one line: checked, problems left, or not checked
-    const head = `<b>⏸ WAITING FOR YOUR OK</b>\n<b>${esc(t.title)}</b> · ${esc(agentName || t.agent)}${t.routine ? ' · routine' : ''}\n${checked ? `<i>${esc(checked)}</i>\n` : ''}\n`;
+    // when the steps would run once approved, so the owner sees it before he taps (a time it cannot read: no APPROVE)
+    const runs = t.runs && t.runs.hash === draftHash(t.draft) ? t.runs : null;
+    const when = runs?.error
+      ? `⚠ APPROVE is refused: ${runs.error}. Send it back.\n`
+      : runs?.at
+        ? `⏱ Runs ${runs.when}, after your OK.\n`
+        : runs?.posts
+          ? `⏱ Runs on your OK; Facebook publishes the post ${runs.postsWhen}.\n`
+          : runs?.held
+            ? 'Goes out as soon as you approve.\n'
+            : '';
+    const head = `<b>⏸ WAITING FOR YOUR OK</b>\n<b>${esc(t.title)}</b> · ${esc(agentName || t.agent)}${t.routine ? ' · routine' : ''}\n${checked ? `<i>${esc(checked)}</i>\n` : ''}${esc(when)}\n`;
     const draft = String(t.draft || '');
     const at = afterOkAt(draft);
     const prose = at >= 0 ? draft.slice(0, at).trimEnd() : draft;
     const steps = at >= 0 ? draft.slice(at) : '';
     const room = LIMIT - head.length - PRE;
     let body;
-    let approvable = true;
+    let approvable = !runs?.error;
     if (escLen(draft) <= room) body = draft;
     else if (!steps) {
       // cut, and no steps heading found: there may be steps in what is cut, so the owner is not offered an OK he cannot see the whole of
@@ -291,7 +280,8 @@ export class Phone {
         let done = null;
         try {
           done = o.approve(id, shown);
-        } catch {
+        } catch (e) {
+          if (e.code !== 'stale') return answer(String(e.message).slice(0, 190));
           await answer('That draft changed. Nothing was approved.');
           await resend();
           return;
@@ -300,13 +290,18 @@ export class Phone {
           const now = o.tickets.get(id);
           return answer(`Nothing was approved: it is not waiting any more (${now ? now.state : 'gone'}).`);
         }
-        await answer('Approved. Sending.');
+        const booked = o.tickets.get(id)?.state === 'scheduled' ? o.tickets.get(id).at : 0;
+        await answer(booked ? `Approved. It runs ${fmtAt(booked, o.cfg.timezone)}.` : 'Approved. Sending.');
         await this.call('editMessageReplyMarkup', {
           chat_id: this.chat,
           message_id: q.message.message_id,
           reply_markup: { inline_keyboard: [] },
         }).catch(() => {});
-        await this.send(`✅ Approved <b>${esc(t.title)}</b>. The desk is doing the outbound step now.`);
+        await this.send(
+          booked
+            ? `✅ Approved <b>${esc(t.title)}</b>. It waits and runs ${esc(fmtAt(booked, o.cfg.timezone))}; cancel it on the board to stop it.`
+            : `✅ Approved <b>${esc(t.title)}</b>. The desk is doing the outbound step now.`,
+        );
       } else if (verb === 'no') {
         await answer('Reply with what should change.');
         const m = await this.send(

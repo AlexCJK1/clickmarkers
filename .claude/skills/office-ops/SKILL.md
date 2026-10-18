@@ -22,7 +22,8 @@ description: Add or change a desk, a connector, a routine or a workflow in Click
    "command"+"args", "headers": { "Authorization": "Bearer ${SECRET_NAME}" }, "auth", "readOnly": [the
    only tool names that may run before the owner's OK], "outbound": [tool name globs that send or change
    things], "private": true (it reads the owner's own material: mail, files, a CRM), "web": true (it
-   reaches the open web), "verified", "disabled", "notes" }`.
+   reaches the open web), "verbatim": [arguments of an outbound call that must go out exactly as the
+   approved step writes them, such as "message" and "image"], "verified", "disabled", "notes" }`.
 2. Give it a `readOnly` list whenever you can. Without one, a tool runs before the OK only when its name
    plainly says it reads (`get_`, `list_`, `search_` ...); everything else waits for the OK.
 3. Pin every `npx` or `pipx` server to a version. Stdio servers start through `core/clean-env.mjs`, so they

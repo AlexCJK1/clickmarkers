@@ -82,6 +82,7 @@ export default function Ticket({ t, open, onToggle, showDesk = false, tray = fal
   const [reply, setReply] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState('');
+  const runs = full?.runs ?? t.runs ?? null; // when the steps would run once approved (the office works it out)
   useEffect(() => {
     if (open)
       a.ticket(t.id)
@@ -228,6 +229,18 @@ export default function Ticket({ t, open, onToggle, showDesk = false, tray = fal
           )}
           {t.state === 'waiting' && (
             <div className="ticket-ctl">
+              {runs?.error ? (
+                <div className="err-line" role="alert">
+                  <Icon name="critical" size={14} sw={2} />
+                  <span>Approve is refused: {runs.error}. Reject it with a note.</span>
+                </div>
+              ) : runs?.at ? (
+                <p className="meta">Runs {runs.when}, after your OK.</p>
+              ) : runs?.posts ? (
+                <p className="meta">Runs on your OK; Facebook publishes the post {runs.postsWhen}.</p>
+              ) : runs?.held ? (
+                <p className="meta">Goes out as soon as you approve.</p>
+              ) : null}
               <div className="row-ctl">
                 <input
                   className="field grow"
@@ -242,11 +255,17 @@ export default function Ticket({ t, open, onToggle, showDesk = false, tray = fal
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={!full?.draftHash || !!busy}
+                  disabled={!full?.draftHash || !!busy || !!runs?.error}
                   onClick={approve}
                 >
                   <Icon name="check" size={15} sw={2.2} />
-                  {busy === 'approve' ? 'Approving…' : 'Approve'}
+                  {busy === 'approve'
+                    ? 'Approving…'
+                    : runs?.at
+                      ? `Approve, runs ${runs.when}`
+                      : runs?.posts
+                        ? `Approve, posts ${runs.postsWhen}`
+                        : 'Approve'}
                 </button>
                 <button type="button" className="btn btn-danger" disabled={!!busy} onClick={reject}>
                   <Icon name="close" size={15} />

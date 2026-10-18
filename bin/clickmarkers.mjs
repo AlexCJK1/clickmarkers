@@ -177,7 +177,10 @@ if (cmd === 'serve' || cmd === 'demo') {
         `  off  connector ${c.key}: ${c.type}${c.missing.length ? ', needs ' + c.missing.join(', ') : ''}${c.verified ? '' : ', unverified'} (enable in connectors.json)`,
       );
     else if (c.missing.length)
-      todo(`connector ${c.key}`, `${c.type}${c.verified ? '' : ', unverified'}, needs ${c.missing.join(', ')}`);
+      todo(
+        `connector ${c.key}`,
+        `${c.type}${c.verified ? '' : ', unverified'}, needs ${c.missing.join(', ')}${c.missing.some(m => /^META_(MCP|PAGE)_TOKEN$/.test(m)) ? ' (node bin/clickmarkers.mjs connect meta writes it)' : ''}`,
+      );
     else if (c.auth === 'oauth' && office.connectorHealth.state.servers?.[c.key]?.status !== 'connected')
       todo(
         `connector ${c.key}`,
@@ -318,11 +321,15 @@ if (cmd === 'serve' || cmd === 'demo') {
     const { connectMeta, SCOPES } = await import('../io/connect-meta.mjs');
     const { loadSecrets } = await import('../core/secrets.mjs');
     loadSecrets(cfg.secretsFile);
+    const { PAGE_SCOPES } = await import('../io/connect-meta.mjs');
+    const adsOnly = rest.includes('--ads-only');
+    const pi = rest.indexOf('--page');
+    const page = pi >= 0 ? String(rest[pi + 1] || '') : '';
     console.log(
-      `Signing in to Meta for: ${SCOPES.join(', ')}. The browser opens; press Continue. The token is written to the secrets file.`,
+      `Signing in to Meta for: ${(adsOnly ? SCOPES : [...SCOPES, ...PAGE_SCOPES]).join(', ')}. The browser opens; press Continue. The tokens are written to the secrets file.`,
     );
     try {
-      const r = await connectMeta({ cfg });
+      const r = await connectMeta({ cfg, page, adsOnly });
       console.log('done:', JSON.stringify(r));
       process.exit(0);
     } catch (e) {
@@ -404,7 +411,9 @@ if (cmd === 'serve' || cmd === 'demo') {
       end(1);
     }
   } else {
-    console.error('clickmarkers connect meta | connect mcp <key> | connect google [--enable]');
+    console.error(
+      'clickmarkers connect meta [--page "<name>"] [--ads-only] | connect mcp <key> | connect google [--enable]',
+    );
     process.exit(2);
   }
 } else {

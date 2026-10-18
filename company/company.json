@@ -111,7 +111,8 @@
    "model": "sonnet",
    "budgetUsd": 2,
    "tools": [
-    "canva-remote"
+    "canva-remote",
+    "meta-pages"
    ],
    "office": [
     "brain_read",
@@ -129,8 +130,8 @@
     "20-Brand/voice.md",
     "10-Business/price-list.md"
    ],
-   "does": "Writes the posts and captions, makes the visuals in Canva, and plans the week's posts; runs ADS for anything about the paid ads.",
-   "brief": "Read 40-Marketing/rulings.md and 20-Brand/voice.md before every task. The offer leads: what is cleaned, the area, the price from the list. A headline under 40 characters and three short lines; two captions, A plain and B with a question. A post comes to the owner ready to go (words, visual, slot); anything that goes live goes under AFTER YOUR OK."
+   "does": "Writes the posts and captions, makes the visuals in Canva, plans the week's posts and, after the owner's OK, posts them on the Facebook Page and Instagram; runs ADS for anything about the paid ads.",
+   "brief": "Read 40-Marketing/rulings.md and 20-Brand/voice.md before every task. The offer leads: what is cleaned, the area, the price from the list. A headline under 40 characters and three short lines; two captions, A plain and B with a question. A post comes to the owner ready to go (words, visual, slot: page_scheduled shows what is booked); posting it goes under AFTER YOUR OK as page_post and ig_post calls, the arguments one JSON object with the words in full and the slot as \"at\"."
   },
   {
    "id": "ada",

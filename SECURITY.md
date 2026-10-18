@@ -23,7 +23,15 @@ You will get a reply within a week. Fixes go to `main`; there are no older versi
   may call only the tools the approved steps name, and every call to a connector (reads too) may only
   reach email addresses and links that are in the draft you approved. An address written so the check
   cannot read it (with a comment or a quoted part) is refused, and the mail server sends only to
-  addresses written plainly. An approved run that is cut off is never run again on its own.
+  addresses written plainly. A post (Facebook Page, Instagram) runs only as one of the calls the
+  approved steps write (one JSON object each, at the start of a step line), once each, with the same
+  words, picture, link and time; only spacing and line breaks in the words may differ. An approved run that is cut off is never run again on its own.
+- **Booked for later.** A posting step that carries a time (`at`) is shown to you with that time before
+  you approve, and the run happens then: Meta books a Facebook post; the office waits for an Instagram post
+  or any time under half an hour away, a post is never published before its time, and a booking never runs early, even if it is cancelled and
+  retried. A time that cannot be read, two different times, a post with a time beside one without, one that has passed or one too far ahead
+  approves nothing. If the office was off or paused and the time has passed by more than an hour, nothing
+  goes out: the draft comes back to you. A picture the steps name is held by its content from your OK.
 
 **The tools are checked in code, not by asking the model.** The permission gate (`engines/agent.mjs`)
 decides every call. Claude Code starts its Agent tool without asking, so the gate also runs on it as a
@@ -66,11 +74,11 @@ A human review is very welcome.
 - **A fooled desk can write a bad draft.** Prompt injection (a web page, an email or a file that tries to
   steer a desk) cannot be prevented completely. The gate makes sure nothing goes out unless you approve
   it, so read the steps before you press Approve.
-- **Only tools and places are checked after the OK, not every value.** The approved run is a new model run
-  that carries out the steps. The gate checks that each tool is named in the steps and that each email
-  address and link is in the draft. It does not compare message bodies, amounts or ids (an ad id, a
-  budget figure) with the draft, so read the report of what went out. Any address in the approved draft
-  counts, not only those in the steps.
+- **Only tools, places and posts are checked after the OK, not every value.** The approved
+  run is a new model run that carries out the steps. The gate checks that each tool is named in the steps,
+  that each email address and link is in the draft, and that a post is one of the calls the steps write. It does
+  not compare email bodies, amounts or ids (an ad id, a budget figure) with the draft, so read the report
+  of what went out. Any address in the approved draft counts, not only those in the steps.
 - **What you choose to hand a browsing desk, it has.** The notes you list in a desk's `reads`, the
   business note every desk gets, and the brief another desk writes for it all reach it. Do not list
   private notes for a desk on the web.

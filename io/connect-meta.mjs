@@ -1,6 +1,7 @@
 // Connect Meta: Facebook Login for Business in the owner's browser, the code exchanged here for a
 // long-lived user token with the Ads MCP permission, written straight into the secrets file as
-// META_MCP_TOKEN. One click for the owner (Continue as …); nothing to paste.
+// META_MCP_TOKEN, and the token of the Facebook Page the office posts on (the only Page, or the one named
+// with --page) as META_PAGE_TOKEN. One click for the owner (Continue as …); nothing to paste.
 // Needs META_APP_ID and META_APP_SECRET in the secrets, and the redirect URI below listed under the
 // app's Facebook Login for Business → Settings → Valid OAuth Redirect URIs.
 import http from 'node:http';
@@ -14,6 +15,34 @@ import { page as officePage } from './office-page.mjs';
 
 const GRAPH = 'https://graph.facebook.com/v23.0';
 export const SCOPES = ['ads_mcp_management', 'ads_read', 'ads_management', 'business_management', 'pages_show_list'];
+/** What posting on the Page and its Instagram account needs, asked for in the same sign-in (not with --ads-only). */
+export const PAGE_SCOPES = [
+  'pages_read_engagement',
+  'pages_manage_posts',
+  'instagram_basic',
+  'instagram_content_publish',
+];
+const q = o => new URLSearchParams(o).toString(); // every value encoded: a code or a token can hold & or #
+
+/**
+ * The Page the office posts on, from the person's long-lived token: the one named (by id or name), or the only one.
+ * A Page token made from a long-lived person's token does not expire. Returns { pages: [{id, name}], page }.
+ */
+export async function pageToken(userToken, want = '', { fetch: f = fetch } = {}) {
+  const r = await (
+    await f(`${GRAPH}/me/accounts?${q({ fields: 'id,name,access_token', limit: 100, access_token: userToken })}`)
+  ).json();
+  if (r.error) throw new Error(`pages: ${r.error.message || JSON.stringify(r.error)}`);
+  const pages = (r.data || []).map(p => ({ id: String(p.id), name: String(p.name || ''), token: p.access_token }));
+  const w = String(want || '')
+    .trim()
+    .toLowerCase();
+  const pick = w ? pages.filter(p => p.id === w || p.name.toLowerCase() === w) : pages.length === 1 ? pages : [];
+  return {
+    pages: pages.map(({ id, name }) => ({ id, name })),
+    page: pick.length === 1 && pick[0].token ? pick[0] : null,
+  };
+}
 
 export function writeSecret(file, name, value) {
   let lines = [];
@@ -66,13 +95,13 @@ export function writeSecret(file, name, value) {
   }
 }
 
-export function connectMeta({ cfg, port = 4621, open = true, log = console.log }) {
+export function connectMeta({ cfg, port = 4621, open = true, log = console.log, page: want = '', adsOnly = false }) {
   const appId = secret('META_APP_ID'),
     appSecret = secret('META_APP_SECRET');
   if (!appId || !appSecret) throw new Error('META_APP_ID and META_APP_SECRET are needed in the secrets file');
   const redirect = `http://localhost:${port}/meta/callback`;
   const state = randomBytes(12).toString('hex');
-  const url = `https://www.facebook.com/v23.0/dialog/oauth?${new URLSearchParams({ client_id: appId, redirect_uri: redirect, state, scope: SCOPES.join(','), response_type: 'code' })}`;
+  const url = `https://www.facebook.com/v23.0/dialog/oauth?${new URLSearchParams({ client_id: appId, redirect_uri: redirect, state, scope: (adsOnly ? SCOPES : [...SCOPES, ...PAGE_SCOPES]).join(','), response_type: 'code' })}`;
   let server;
   const done = new Promise((resolve, reject) => {
     server = http.createServer(async (req, res) => {
@@ -98,7 +127,6 @@ export function connectMeta({ cfg, port = 4621, open = true, log = console.log }
           throw new Error(`${u.searchParams.get('error')}: ${u.searchParams.get('error_description') || ''}`);
         const code = u.searchParams.get('code');
         if (!code) throw new Error('no code');
-        const q = o => new URLSearchParams(o).toString(); // every value encoded: a code or a token can hold & or #
         const r1 = await (
           await fetch(
             `${GRAPH}/oauth/access_token?${q({ client_id: appId, redirect_uri: redirect, client_secret: appSecret, code })}`,
@@ -113,18 +141,36 @@ export function connectMeta({ cfg, port = 4621, open = true, log = console.log }
         const token = r2.access_token || r1.access_token;
         const perms = await (await fetch(`${GRAPH}/me/permissions?${q({ access_token: token })}`)).json();
         const granted = (perms.data || []).filter(p => p.status === 'granted').map(p => p.permission);
-        const missing = SCOPES.filter(s => !granted.includes(s));
+        const missing = (adsOnly ? SCOPES : [...SCOPES, ...PAGE_SCOPES]).filter(s => !granted.includes(s));
         writeSecret(cfg.secretsFile, 'META_MCP_TOKEN', token);
+        // the Page to post on: its own token, saved beside the person's
+        let pageNote = '';
+        let chosen = null;
+        if (!adsOnly) {
+          const pg = await pageToken(token, want);
+          chosen = pg.page;
+          if (chosen) {
+            writeSecret(cfg.secretsFile, 'META_PAGE_TOKEN', chosen.token);
+            pageNote = ` Posting on the Page ${chosen.name}.`;
+          } else if (pg.pages.length)
+            pageNote = ` ${want ? `No Page called ${want}. ` : ''}Pages on this login: ${pg.pages.map(p => p.name).join(', ')}. To post on one, run clickmarkers connect meta --page "<its name>".`;
+          else pageNote = ' No Facebook Page on this login, so nothing can be posted yet.';
+        }
         page(
           'Clickmarkers is connected to Meta',
-          `Permissions granted: ${granted.join(', ')}.${missing.length ? ` Not granted: ${missing.join(', ')}.` : ''} Token ${r2.expires_in ? `valid about ${Math.round(r2.expires_in / 86400)} days` : 'saved'}. You can close this tab.`,
+          `Permissions granted: ${granted.join(', ')}.${missing.length ? ` Not granted: ${missing.join(', ')}.` : ''} Token ${r2.expires_in ? `valid about ${Math.round(r2.expires_in / 86400)} days` : 'saved'}.${pageNote} You can close this tab.`,
         );
         log(
-          `meta: token saved to the secrets file as META_MCP_TOKEN (${granted.length} permissions${missing.length ? ', missing ' + missing.join(', ') : ''})`,
+          `meta: token saved to the secrets file as META_MCP_TOKEN (${granted.length} permissions${missing.length ? ', missing ' + missing.join(', ') : ''})${chosen ? `; META_PAGE_TOKEN for ${chosen.name}` : ''}.${pageNote && !chosen ? pageNote : ''}`,
         );
         setTimeout(() => {
           server.close();
-          resolve({ granted, missing, expiresIn: r2.expires_in || 0 });
+          resolve({
+            granted,
+            missing,
+            expiresIn: r2.expires_in || 0,
+            page: chosen ? { id: chosen.id, name: chosen.name } : null,
+          });
         }, 500);
       } catch (e) {
         page('That did not work', redact(e.message));

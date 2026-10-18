@@ -139,14 +139,21 @@ The full account is in `SECURITY.md`. Where each control lives:
 
 - `engines/agent.mjs` `toolGate`: every tool call, decided in code. The desk's own servers and the office
   tools for the desk; the team's servers for its sub-agents; outbound tools refused before the OK; after
-  it, only tools the approved steps call, and every connector call only with addresses and links in the
-  frozen draft. Claude Code starts its Agent tool without asking the gate, so `agentHook` runs the gate on
+  it, only tools the approved steps call, every connector call only with addresses and links in the
+  frozen draft, and a connector that holds its arguments (`verbatim`) only as one of the calls the steps
+  write, each once. Claude Code starts its Agent tool without asking the gate, so `agentHook` runs the gate on
   it as a PreToolUse hook: only the desk's own team starts, never Claude Code's built-in helpers. The
   owner's own allow rules are switched off for office runs.
 - `engines/connectors.mjs` `outboundTool`: a connector's `readOnly` list, else its `outbound` globs, else
   the tool's name (it reads only when a reading verb leads it, follows one prefix or ends it).
 - `engines/prompt.mjs`: the execute run sees only the frozen draft; a run that reaches the web is not
   handed the office's material unasked (`runsOnWeb`).
+- `engines/connectors.mjs` `stepCalls`, `heldCall`, `bookingOf`: a posting step's arguments are read as one JSON
+  object; after the OK a held call must equal one of them; the `at` of a tool the office waits for books the run.
+- `company/office.mjs` `approve`: steps with a time are booked for it, already frozen; an unreadable, double
+  or past one approves nothing; a booking never runs early; one that has missed its time by more than an hour
+  while the office was off or paused goes back to the in-tray unsent. `runsOf` tells the page and the phone
+  when a waiting draft would run.
 - `company/office.mjs` `exposures`: a run that could read private material and reach the web is named at
   start and refused unless accepted (`security.acceptExposure`).
 - `core/clean-env.mjs`: stdio connectors start with a clean environment.
@@ -171,12 +178,19 @@ A registry entry (`company/connectors.json`):
 - Secrets are referenced as `${NAME}` in `headers` or `env`. The value travels in the run's environment and
   Claude Code fills it in, so a token never sits on a command line.
 - `own: true` marks the office's own servers (`servers/`): they are given the secrets file's path, never
-  the values. `{root}` in an argument is this install's folder.
+  the values. `{root}` in an argument is this install's folder. `media: true` also gives one the media
+  folders, the only place it may read pictures from.
+- `verbatim`: the arguments of an outbound call that must go out as approved (a post's words, picture,
+  link and time); after the OK the call must match one written in the approved steps, each runs once.
+- `waits`: tools that cannot book themselves (Instagram); the office waits for the `at` their step carries.
 - `private` and `web` feed the exposure check (section 6).
 
-The office's own servers: `servers/mail.mjs` (any IMAP mailbox with an app password), and
+The office's own servers: `servers/mail.mjs` (any IMAP mailbox with an app password),
 `servers/google.mjs` for Drive, Docs, Sheets and Calendar through Google's normal APIs (one sign-in with
-`clickmarkers connect google`, one process per service, no delete, every write after the OK).
+`clickmarkers connect google`, one process per service, no delete, every write after the OK), and
+`servers/meta.mjs` for the Facebook Page and its Instagram account through Meta's Graph API (the Page token
+from `clickmarkers connect meta`; posts after the OK, in the approved words; no delete; see
+`docs/meta.md`).
 
 ## 8. The page
 

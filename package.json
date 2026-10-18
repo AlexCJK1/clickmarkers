@@ -1,8 +1,8 @@
 {
   "name": "clickmarkers",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "An AI marketing agency of desks that runs on your own computer: it writes your posts, watches your ads and leads, and nothing goes out without your OK.",
+  "description": "The marketing department you own: AI staff who post to Facebook and Instagram, run your ads and answer enquiries. On your computer, on your say-so.",
   "scripts": {
     "demo": "node bin/clickmarkers.mjs demo",
     "demo:show": "node bin/clickmarkers.mjs demo --show",

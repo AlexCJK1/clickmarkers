@@ -1,6 +1,6 @@
 <h1 align="center">Clickmarkers</h1>
 
-<p align="center"><b>Your own AI marketing agency, on your own computer.<br>It does the work, and nothing goes out without your OK.</b></p>
+<p align="center"><b>The marketing department you own.</b><br>AI staff who post to Facebook and Instagram, run your ads and answer enquiries.<br>On your computer, on your say-so.</p>
 
 <p align="center">Clickmarkers by Alex Cojoaca</p>
 
@@ -24,7 +24,7 @@ hair salon. Setting it up takes someone happy in a terminal, the owner or whoeve
 computers: you install Node, edit a few JSON files and create developer access for Google and Meta. Using
 it day to day is a web page and a phone.
 
-**Status:** early (0.1). Expect rough edges, and please report them.
+**Status:** early (0.2). Expect rough edges, and please report them.
 
 ## Try the demo
 
@@ -109,7 +109,8 @@ that in code, not by asking the model nicely:
   OK, by design: a reply can be saved in your mailbox's Drafts folder, and a desk with the browser can open
   a web page.
 - **After you approve, only what you approved.** The run gets the exact draft you saw. It may call only
-  the tools its steps name, and only with the email addresses and links in that draft.
+  the tools its steps name, and only with the email addresses and links in that draft. A post goes out
+  exactly as its step is written, once: the words, the picture, the time.
 - **Your data stays home.** It runs on your machine and listens only there. What a desk works on goes
   to the model it runs on, to the tools you connect and, if you set up the phone, to your Telegram chat.
   Nowhere else. Your keys never reach the connectors it starts. A desk that browses the web is not handed
@@ -132,21 +133,22 @@ What it really costs, measured: the author's own office, 38 desks and 12 daily r
 day over its first eight days (from $0.78 to $3.69), about $50 a month. One job on its own: a four-desk
 chain that wrote, checked and designed a social post took two minutes and cost $1.00.
 
-Connectors use your own accounts: Google Drive, Docs, Sheets and Calendar, any IMAP mailbox, Meta Ads,
-Canva, Figma, a browser, and any MCP server you add.
+Connectors use your own accounts: Google Drive, Docs, Sheets and Calendar, any IMAP mailbox, your Facebook
+Page and Instagram, Meta Ads, Canva, Figma, a browser, and any MCP server you add.
 
 ## What works today, and what does not yet
 
-It is version 0.1. What a desk can do is what its connectors can do:
+It is version 0.2. What a desk can do is what its connectors can do:
 
 - **Works:** drafting posts, captions, replies, ad reviews and reports; the in-tray, the evaluations desk
   and the approval gate; reading the mailbox and sending a reply after your OK; Google Drive, Docs, Sheets
-  and Calendar; reading Meta ads and changing them after your OK (Meta's own Ads MCP); Canva and Figma; a
-  browser; routines, the ledger, the phone.
+  and Calendar; posting on your Facebook Page and Instagram after your OK, now or at a set time
+  ([docs/meta.md](docs/meta.md)); reading Meta ads and changing them after your OK (Meta's own Ads MCP);
+  Canva and Figma; a browser; routines, the ledger, the phone.
 - **Not yet:** Clickmarkers does not fetch your numbers itself; the Numbers panel shows what a script or a
   desk of yours writes into the stats file. There is no CRM connector, so the Leads desks work from your
-  mailbox and your notes. Nothing posts to a Facebook Page or Instagram yet: a post comes to you ready to
-  go (words, picture, slot) and you post it. Buffer's MCP server is in the registry, switched off, because
+  mailbox and your notes. Instagram takes picture posts only for now: no reels, carousels or stories.
+  Nothing posts to TikTok, LinkedIn or X yet; Buffer's MCP server is in the registry, switched off, because
   it has not been tested with Clickmarkers yet. macOS has not been tried.
 
 ## Set it up for your business
@@ -154,7 +156,7 @@ It is version 0.1. What a desk can do is what its connectors can do:
 > **Before you start.** Plan on about an hour for a first real office, and you will be in a terminal and
 > a text editor. A working office needs your own accounts: an Anthropic API key (required), and for each
 > tool you want, its own access: a Google Cloud OAuth client for Drive, Docs, Sheets and Calendar, a Meta
-> app for the ads, an app password for the mailbox, a Telegram bot for the phone. Every tool is optional:
+> app for the ads and the Page, an app password for the mailbox, a Telegram bot for the phone. Every tool is optional:
 > the office runs with the API key and a folder of notes.
 
 You need Node 22+, an Anthropic API key, and a computer that stays on while the office works. Remote tools
@@ -178,7 +180,8 @@ yet: reports are welcome.
    `templates/it-office` an engineering one. If you use Claude Code, the repo's `office-ops` skill knows
    how to add desks, routines and connectors.
 6. **Connect your tools.** `node bin/clickmarkers.mjs connect google` (Drive, Docs, Sheets, Calendar),
-   `connect meta` (Meta Ads), or an IMAP mailbox with an app password.
+   `connect meta` (Meta Ads, and the Facebook Page and Instagram account to post on: [docs/meta.md](docs/meta.md)),
+   or an IMAP mailbox with an app password.
    `connect mcp canva-remote` is for a remote MCP server that signs in through a browser: it adds the server
    to your user-level Claude Code settings (`claude mcp add -s user`), you sign in once with `/mcp` in
    Claude Code, and `claude mcp remove canva-remote -s user` takes it out again. `npm run check` says what
@@ -255,7 +258,8 @@ if you set up the phone, to your Telegram chat. Nowhere else. The office listens
 - A first-run interview that writes your company and your brain for you.
 - More company templates: a café, a trades business, a lettings agent, a hair salon.
 - Tool-using desks on other models, with the same approval gate.
-- More connectors with read-only lists: Shopify, Instagram, Google Business Profile, Xero.
+- More connectors with read-only lists: Shopify, Google Business Profile, Xero.
+- Instagram reels and carousels; posting to TikTok and LinkedIn.
 - A weekly batch review of every desk's drafts against your rules.
 - Installers for macOS and Linux to match the Windows one.
 - The page in more languages.

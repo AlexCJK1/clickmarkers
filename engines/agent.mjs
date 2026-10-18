@@ -7,9 +7,10 @@ import fs from 'node:fs';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { modelId, routable } from '../company/model.mjs';
 import { systemPrompt, userPrompt, approvedSteps, runsOnWeb, styleLine } from './prompt.mjs';
-import { namedIn, unapprovedTarget } from './connectors.mjs';
+import { namedIn, unapprovedTarget, heldCall } from './connectors.mjs';
 import { officeServer } from './office-tools.mjs';
 import { redact, secret } from '../core/secrets.mjs';
+import { mediaPath, fileHash } from '../core/media.mjs';
 import { classifyApiError } from '../core/lanes.mjs';
 
 const BUILTIN_DENY = [
@@ -123,6 +124,8 @@ export async function runAgent({ office, ticket, agent, phase, lane = 'api', cap
     approved,
     draft: exec ? String(ticket.approvedDraft || '') : '',
     builtin: tools,
+    pictures: exec ? ticket.pictures || {} : {},
+    roots: cfg.media?.roots || [],
     onDeny: (name, why) => {
       denied.push(name);
       events.emit('deny', { ticket: ticket.id, agent: agent.id, tool: name, why });
@@ -283,7 +286,8 @@ export function teamOf({ company, agent }) {
  *  - Before the owner's OK (draft and wrap): every outbound tool is refused (listed as outbound, named like one, or
  *    off a read-only list).
  *  - After it (execute): a tool runs only when the approved steps name it as a call, and an outbound one only with
- *    email addresses and links the frozen draft holds.
+ *    email addresses and links the frozen draft holds; a connector that holds its arguments (its "verbatim" list:
+ *    a post's words, picture, link and time) only as one of the calls the steps write, each once.
  *  - Everything else is refused. Nothing is pre-approved and nothing prompts.
  */
 export function toolGate({
@@ -295,6 +299,8 @@ export function toolGate({
   approved = '',
   draft = '',
   builtin = [],
+  pictures = {},
+  roots = [],
   onDeny = () => {},
 }) {
   const byId = new Map(keys.map(k => [connectors.toolId(k), k]));
@@ -302,6 +308,7 @@ export function toolGate({
   const lead = new Set([...own.map(k => connectors.toolId(k)), 'office']);
   const builtins = new Set(builtin);
   if (builtins.has('Agent')) builtins.add('Task'); // Claude Code's older name for the same tool
+  const used = new Map(); // tool → the approved step calls of a held connector already run, each runs once
   return async (name, input, opts = {}) => {
     const mm = String(name).match(/^mcp__(.+?)__(.+)$/);
     const mine = !!mm && byId.has(mm[1]) && (!!opts?.agentID || lead.has(mm[1]));
@@ -316,8 +323,29 @@ export function toolGate({
     else if (phase === 'execute') {
       // every connector call after the OK, reads too: a browser step approved once must not open another address
       const target = mm[1] !== 'office' ? unapprovedTarget(input, draft) : '';
+      // a post goes out as the owner approved it: a connector that holds its arguments (the words, the picture, the
+      // time) runs only as one of the calls the steps write, each once
+      const conn = outbound ? connectors.get(byId.get(mm[1])) : null;
+      const fields = conn?.verbatim || [];
+      const key = `${mm[1]}__${mm[2]}`;
+      const held = fields.length
+        ? heldCall({
+            name: mm[2],
+            input,
+            fields,
+            words: conn.words || [],
+            steps: approved,
+            used: used.get(key) || new Set(),
+          })
+        : null;
+      // a picture is held by its content as well as its name: the file the owner approved, not one put there since
+      const changed = held && !held.field ? changedPicture(input, conn.files || [], pictures, roots) : '';
       if (!namedIn(approved, mm[2])) why = 'not named in the approved steps';
       else if (target) why = `${target} is not in the approved draft`;
+      else if (held?.field === 'call') why = `no step the owner approved is left for this ${mm[2]}`;
+      else if (held?.field) why = `its ${held.field} is not as the owner approved it, word for word`;
+      else if (changed) why = `the picture ${changed} is not the one the owner approved (it changed or cannot be read)`;
+      else if (held) used.set(key, (used.get(key) || new Set()).add(held.key));
     } else if (outbound) why = `outbound in the ${phase} phase`;
     if (why) {
       onDeny(name, why);
@@ -332,6 +360,16 @@ export function toolGate({
     }
     return { behavior: 'allow', updatedInput: input };
   };
+}
+/** The first held picture whose file is not the one approved (by SHA-256), or ''. */
+function changedPicture(input, files, pictures, roots) {
+  for (const f of files) {
+    const name = input?.[f];
+    if (name == null || name === '') continue;
+    const m = mediaPath(String(name), roots);
+    if (!m.real || !pictures[name] || fileHash(m.real) !== pictures[name]) return String(name);
+  }
+  return '';
 }
 /**
  * The gate again, as a PreToolUse hook for the Agent and Task tools. Claude Code lets those start without asking

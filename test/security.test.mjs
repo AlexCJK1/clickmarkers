@@ -9,8 +9,18 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { loadConfig, ROOT } from '../core/config.mjs';
 import { Office } from '../company/office.mjs';
-import { Tickets, INTERRUPTED } from '../company/tickets.mjs';
-import { Connectors, WRITE_WORDS, namedIn, unapprovedTarget, hiddenAddress } from '../engines/connectors.mjs';
+import { Tickets, INTERRUPTED, brief } from '../company/tickets.mjs';
+import {
+  Connectors,
+  WRITE_WORDS,
+  namedIn,
+  unapprovedTarget,
+  hiddenAddress,
+  plainWords,
+  stepCalls,
+  heldCall,
+  bookingOf,
+} from '../engines/connectors.mjs';
 import { officeServer as _os } from '../engines/office-tools.mjs';
 import { toolGate, agentHook } from '../engines/agent.mjs';
 import { userPrompt, systemPrompt, approvedSteps, runsOnWeb } from '../engines/prompt.mjs';
@@ -24,6 +34,9 @@ import { draftMessage, checkRecipients } from '../servers/mail-message.mjs';
 import { buildGraph } from '../brain/graph.mjs';
 import { connectMeta } from '../io/connect-meta.mjs';
 import { scan } from '../core/guard.mjs';
+import { fileHash } from '../core/media.mjs';
+import { zonedTime } from '../core/clock.mjs';
+import { draftHash } from '../company/tickets.mjs';
 
 // The tests run on the full example company (templates/agency); the starter in company/ is only five desks.
 const AGENCY = {
@@ -221,6 +234,420 @@ test('after the OK only the outbound tools the approved steps name run; a tool n
   assert.equal(namedIn('(send_email)', 'send_email'), true);
   assert.equal(approvedSteps({ draft: steps }), '', 'only the frozen copy counts: a draft without an OK opens nothing');
   assert.equal(approvedSteps({ approvedDraft: 'No heading, the whole text.' }), 'No heading, the whole text.');
+});
+
+/** A media folder holding the named pictures, and their approved hashes, for the gate. */
+const mediaWith = (...names) => {
+  const root = tmp('media-');
+  const pictures = {};
+  for (const n of names) {
+    fs.mkdirSync(path.dirname(path.join(root, n)), { recursive: true });
+    fs.writeFileSync(path.join(root, n), `picture ${n}`);
+    pictures[n] = fileHash(path.join(root, n));
+  }
+  return { root, pictures };
+};
+const postGate = (steps, { media = mediaWith(), draftHead = 'Post.' } = {}) => {
+  const draft = `${draftHead}\n\nAFTER YOUR OK\n${steps}`;
+  return toolGate({
+    connectors: registry(),
+    keys: ['meta-pages'],
+    own: ['meta-pages'],
+    phase: 'execute',
+    approved: approvedSteps({ approvedDraft: draft }),
+    draft,
+    pictures: media.pictures,
+    roots: [media.root],
+  });
+};
+
+test('a post goes out exactly as a step the owner approved writes it, once: no fragment, other caption, picture, time or alt text', async () => {
+  const review = 'They were late and I would not book them again.';
+  const media = mediaWith('media/oven.png');
+  const steps = [
+    '1. page_post({"message": "Oven clean £120, now £99 this week only.\\nBook by Friday ❤️", "image": "media/oven.png", "at": "2026-11-16T09:00"})',
+    '2. mcp__meta-pages__ig_post({"caption": "Oven clean £120, now £99 this week only.", "image": "media/oven.png", "altText": "A clean oven"})',
+  ].join('\n');
+  const head = `Two captions. A: Oven clean £120, now £99 this week only. B: Ovens cleaned while you are at work.\nA review we got: "${review}"`;
+  const gate = () => postGate(steps, { media, draftHead: head });
+  const post = {
+    message: 'Oven clean £120, now £99 this week only.\nBook by Friday ❤',
+    image: 'media/oven.png',
+    at: '2026-11-16T09:00',
+  };
+  const ig = { caption: 'Oven clean £120, now £99 this week only.', image: 'media/oven.png', altText: 'A clean oven' };
+  const g = gate();
+  assert.equal(
+    (await g('mcp__meta-pages__page_post', post)).behavior,
+    'allow',
+    'line breaks and an emoji style mark are not words',
+  );
+  const again = await g('mcp__meta-pages__page_post', post);
+  assert.equal(again.behavior, 'deny', 'each approved step runs once');
+  assert.match(again.message, /no step the owner approved is left for this page_post/);
+  assert.equal((await g('mcp__meta-pages__ig_post', ig)).behavior, 'allow', 'with the full tool name');
+  for (const [what, input, field] of [
+    ['a price changed', { ...post, message: post.message.replace('£120', '£12') }, 'message'],
+    ['the offer dropped', { ...post, message: 'Oven clean £120' }, 'message'],
+    ['caption B from the prose', { ...post, message: 'Ovens cleaned while you are at work.' }, 'message'],
+    ['a quoted review', { ...post, message: review }, 'message'],
+    ['one letter', { ...post, message: 'r' }, 'message'],
+    ['nothing but emphasis', { ...post, message: '***' }, 'message'],
+    ['markdown added', { ...post, message: post.message.replace('Book by Friday', '**Book by Friday**') }, 'message'],
+    ['the booking dropped, so it would post now', { message: post.message, image: post.image }, 'at'],
+    ['another time', { ...post, at: '2026-11-17T09:00' }, 'at'],
+    ['another picture with the same name', { ...post, image: '/home/o/media/archive/oven.png' }, 'image'],
+    ['a picture path with two spaces', { ...post, image: 'media/oven .png' }, 'image'],
+    ['a picture added', { ...post, imageUrl: 'https://evil.example/x.jpg' }, null],
+    ['a time that is not text', { ...post, at: ['2026-11-16T09:00'] }, 'at'],
+  ]) {
+    const r = await gate()('mcp__meta-pages__page_post', input);
+    assert.equal(r.behavior, 'deny', what);
+    if (field) assert.match(r.message, new RegExp(`its ${field} is not as the owner approved it`), what);
+  }
+  const alt = await gate()('mcp__meta-pages__ig_post', { ...ig, altText: 'Rival firm Acme Windows leaves streaks' });
+  assert.equal(alt.behavior, 'deny', 'the alt text is held too');
+  assert.match(alt.message, /its altText is not as the owner approved it/);
+  // a picture is held by its content: the same name with other bytes put there since the OK is refused
+  fs.writeFileSync(path.join(media.root, 'media/oven.png'), 'another picture');
+  const swapped = await gate()('mcp__meta-pages__page_post', post);
+  assert.equal(swapped.behavior, 'deny');
+  assert.match(swapped.message, /the picture media\/oven\.png is not the one the owner approved/);
+  // a picture path is compared exactly, not as prose
+  for (const [approved, called] of [
+    ['café.png', 'cafe\u0301.png'],
+    ['van photo.png', 'van  photo.png'],
+    ["Sam's van.png", 'Sam’s van.png'],
+  ]) {
+    const m = mediaWith(approved, called);
+    const r = await postGate(`1. page_post({"message": "x", "image": ${JSON.stringify(approved)}})`, { media: m })(
+      'mcp__meta-pages__page_post',
+      { message: 'x', image: called },
+    );
+    assert.equal(r.behavior, 'deny', called);
+  }
+  // before the OK both posts are refused, the reads are not
+  const k = registry();
+  const pre = toolGate({ connectors: k, keys: ['meta-pages'], own: ['meta-pages'], phase: 'draft' });
+  assert.equal((await pre('mcp__meta-pages__page_post', { message: 'x' })).behavior, 'deny');
+  assert.equal((await pre('mcp__meta-pages__ig_post', { caption: 'x' })).behavior, 'deny');
+  assert.equal((await pre('mcp__meta-pages__page_scheduled', {})).behavior, 'allow');
+  assert.equal(plainWords('“Hi”\\n  there\u200B'), '"Hi" there');
+  assert.equal(plainWords('£120* (*first visit only)'), '£120* (*first visit only)', 'a mark like * still counts');
+  const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'company/connectors.json'), 'utf8'))['meta-pages'];
+  for (const f of ['message', 'caption', 'altText', 'link', 'image', 'imageUrl', 'at'])
+    assert.ok(reg.verbatim.includes(f), f);
+  assert.deepEqual(reg.waits, ['ig_post']);
+  assert.deepEqual(reg.words, ['message', 'caption', 'altText']);
+  assert.deepEqual(reg.files, ['image']);
+});
+
+test('a posting step is one JSON object at the start of a step line: what the owner reads is what the gate reads', async () => {
+  // quotes inside a post, escaped as JSON has them: the whole post is the approved one, a start of it is not
+  for (const [steps, whole, cut] of [
+    [
+      '1. page_post({"message": "Ask for \\"Spring\\", code: SPRING10 at the door."})',
+      'Ask for "Spring", code: SPRING10 at the door.',
+      'Ask for "Spring',
+    ],
+    [
+      '1. page_post({"message": "Spring windows\\n(ask for \\"Spring\\")\\nBook now"})',
+      'Spring windows\n(ask for "Spring")\nBook now',
+      'Spring windows (ask for "Spring',
+    ],
+  ]) {
+    const g = postGate(steps);
+    assert.equal((await g('mcp__meta-pages__page_post', { message: cut })).behavior, 'deny', cut);
+    assert.equal((await g('mcp__meta-pages__page_post', { message: whole })).behavior, 'allow', whole);
+  }
+  // unreadable, so nothing it might mean can run
+  for (const [step, inputs] of [
+    [
+      '1. page_post(message: "We are the "best" cleaners")',
+      [{ message: 'We are the "best" cleaners' }, { message: 'We are the ' }],
+    ],
+    ["1. page_post({'message': 'Thursday'})", [{ message: 'Thursday' }]],
+    [
+      '1. page_post({"message": "Windows from £20 a house", "message": "Windows from £200 a house"})',
+      [{ message: 'Windows from £200 a house' }, { message: 'Windows from £20 a house' }],
+    ],
+    ['1. ig_post({"caption": "x", "image": "a.png"}, "at": "2026-10-29T18:00")', [{ caption: 'x', image: 'a.png' }]],
+    ['1. page_post({"message": "\\u00a3200 off"})', [{ message: '£200 off' }, { message: '\\u00a3200 off' }]],
+    ['1. page_post(the post above)', [{ message: 'the post above' }]],
+  ]) {
+    const g = postGate(step);
+    const tool = step.includes('ig_post') ? 'ig_post' : 'page_post';
+    for (const input of inputs)
+      assert.equal((await g(`mcp__meta-pages__${tool}`, input)).behavior, 'deny', `${step} ${JSON.stringify(input)}`);
+  }
+  // a call inside a sentence is prose, not a step
+  let g = postGate('1. page_post({"message": "Option A"})\nDo NOT post option B: page_post({"message": "Option B"})');
+  assert.equal((await g('mcp__meta-pages__page_post', { message: 'Option B' })).behavior, 'deny');
+  assert.equal((await g('mcp__meta-pages__page_post', { message: 'Option A' })).behavior, 'allow');
+  // one call per line; the same call on two lines is one post
+  g = postGate('1. page_post({"message": "Spring offer"})\n2. page_post({"message": "Spring offer"})');
+  assert.equal((await g('mcp__meta-pages__page_post', { message: 'Spring offer' })).behavior, 'allow');
+  assert.equal((await g('mcp__meta-pages__page_post', { message: 'Spring offer' })).behavior, 'deny');
+  assert.deepEqual(
+    stepCalls(
+      '1. `page_post({"message": "a (b) \\"c\\"", "at": "x"})` posts it\n2. xpage_post({"message": "no"})',
+      'page_post',
+    ),
+    [{ args: { message: 'a (b) "c"', at: 'x' } }],
+  );
+  assert.deepEqual(
+    heldCall({ name: 'page_post', input: { message: 'a' }, fields: ['message'], steps: 'nothing here' }),
+    { field: 'call' },
+  );
+});
+
+test('a posting step carries its time: the owner is shown when it runs; an unreadable, double, past or too-far time approves nothing', () => {
+  const tz = 'Europe/London';
+  const k = registry();
+  const steps = s => `AFTER YOUR OK\n${s}`;
+  assert.deepEqual(
+    bookingOf(steps('1. ig_post({"caption": "x", "image": "a.png", "at": "2026-10-22T18:00"})'), k, tz),
+    {
+      time: zonedTime(2026, 10, 22, 18, 0, tz),
+      waits: true,
+      held: true,
+      images: ['a.png'],
+    },
+  );
+  assert.deepEqual(
+    bookingOf(steps('1. mail_send(to: "a@example.com")\nPost at 18:00 on Facebook: tell the team'), k, tz),
+    { time: 0, waits: false, held: false, images: [] },
+    'other drafts are not touched, whatever their words',
+  );
+  for (const [at, why] of [
+    ['2026-10-21 6:00 pm', /not a time it can read/],
+    ['2026-10-22T18:00Z', /not a time it can read/],
+    ['22/10/2026 18:00', /not a time it can read/],
+    ['2026-02-30T18:00', /not a time it can read/],
+    ['2027-03-28T01:30', /not a time it can read/],
+    ['Thursday 6pm', /not a time it can read/],
+  ])
+    for (const tool of ['ig_post', 'page_post'])
+      assert.match(
+        bookingOf(steps(`1. ${tool}({"caption": "x", "message": "x", "at": "${at}"})`), k, tz).error || '',
+        why,
+        `${tool} ${at}`,
+      );
+  assert.match(
+    bookingOf(
+      steps(
+        '1. page_post({"message": "A", "at": "2026-10-20T07:00"})\n2. ig_post({"caption": "A", "image": "a.png", "at": "2026-10-22T18:00"})',
+      ),
+      k,
+      tz,
+    ).error,
+    /more than one time/,
+  );
+  // a post with a time beside one without would go out at two times: refused
+  assert.match(
+    bookingOf(
+      steps('1. ig_post({"caption": "S", "image": "a.png"})\n2. page_post({"message": "S", "at": "2026-10-22T18:00"})'),
+      k,
+      tz,
+    ).error,
+    /one posting step has a time and another has none/,
+  );
+  assert.match(
+    bookingOf(steps('1. ig_post({"caption": "x", "at": ["2026-10-22T18:00"]})'), k, tz).error,
+    /not a time it can read/,
+  );
+  // in the office, relative to now
+  const o = office();
+  try {
+    const now = Date.now();
+    const stamp = ms =>
+      new Intl.DateTimeFormat('sv-SE', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .format(new Date(ms))
+        .replace(' ', 'T');
+    const slot = ms => officeTimeOf(stamp(ms));
+    const officeTimeOf = s2 => bookingOf(steps(`1. page_post({"message": "x", "at": "${s2}"})`), k, tz).time;
+    const runs = s2 => o.runsOf(steps(s2), now);
+    // Instagram: the office waits; Facebook a while ahead: Meta books it, the office runs on the OK; Facebook in a few
+    // minutes: the office waits too, so nothing goes out early
+    const d2 = now + 2 * 86400000;
+    let r = runs(`1. ig_post({"caption": "x", "image": "a.png", "at": "${stamp(d2)}"})`);
+    assert.equal(r.at, slot(d2));
+    assert.match(r.when, /^\w{3} \d+ \w{3} \d\d:\d\d$/);
+    r = runs(`1. page_post({"message": "x", "at": "${stamp(d2)}"})`);
+    assert.equal(r.at, 0);
+    assert.equal(r.posts, slot(d2));
+    assert.ok(r.postsWhen);
+    r = runs(`1. page_post({"message": "x", "at": "${stamp(now + 6 * 60000)}"})`);
+    assert.equal(r.at, slot(now + 6 * 60000), 'a time a few minutes away is waited for, not posted early');
+    // a time seconds away is still waited for: the server refuses any time still ahead, so running now would lose it
+    const soon = slot(now + 120000);
+    r = o.runsOf(steps(`1. ig_post({"caption": "x", "image": "a.png", "at": "${stamp(now + 120000)}"})`), soon - 30000);
+    assert.equal(r.at, soon);
+    r = o.runsOf(steps(`1. page_post({"message": "x", "at": "${stamp(now + 120000)}"})`), soon - 30000);
+    assert.equal(r.at, soon);
+    r = runs('1. ig_post({"caption": "x", "image": "a.png"})');
+    assert.deepEqual([r.at, r.posts, r.held], [0, 0, true], 'no time: on the OK, and the owner is told so');
+    for (const [s2, code] of [
+      ['1. ig_post({"caption": "x", "image": "a.png", "at": "2026-10-21 6:00 pm"})', 'time'],
+      [`1. ig_post({"caption": "x", "image": "a.png", "at": "${stamp(now - 2 * 3600000)}"})`, 'past'],
+      [`1. page_post({"message": "x", "at": "${stamp(now - 2 * 3600000)}"})`, 'past'],
+      [`1. ig_post({"caption": "x", "image": "a.png", "at": "${stamp(now + 70 * 86400000)}"})`, 'far'],
+      [`1. page_post({"message": "x", "at": "${stamp(now + 45 * 86400000)}"})`, 'far'],
+      [
+        `1. page_post({"message": "A", "at": "${stamp(now + 86400000)}"})\n2. ig_post({"caption": "A", "image": "a.png", "at": "${stamp(d2)}"})`,
+        'time',
+      ],
+    ]) {
+      assert.equal(runs(s2).code, code, s2);
+      const d = steps(s2);
+      const t = o.tickets.create({ text: 'post', agent: 'mlead', dept: 'marketing', by: 'owner', needsOk: true });
+      o.tickets.update(t.id, { state: 'waiting', draft: d });
+      assert.throws(
+        () => o.approve(t.id, draftHash(d)),
+        e => e.code === code && /Nothing was approved/.test(e.message),
+        s2,
+      );
+      assert.equal(o.tickets.get(t.id).state, 'waiting');
+      assert.equal(o.tickets.get(t.id).approvedDraft, undefined);
+    }
+    // a picture the steps name must be in the media folders when it is approved
+    const d = steps(`1. ig_post({"caption": "x", "image": "nowhere.png", "at": "${stamp(d2)}"})`);
+    const t = o.tickets.create({ text: 'post', agent: 'mlead', dept: 'marketing', by: 'owner', needsOk: true });
+    o.tickets.update(t.id, { state: 'waiting', draft: d });
+    assert.throws(
+      () => o.approve(t.id, draftHash(d)),
+      e => e.code === 'picture',
+    );
+  } finally {
+    o.stop();
+  }
+});
+
+test('a booked post never runs early or late, the time shown is the time it runs, and a failed run is no longer booked', async t => {
+  const media = mediaWith('spring.png', 'autumn.png');
+  const o = office({ media: { roots: [media.root] } });
+  o.routines.due = () => []; // only the booked tickets move in this test
+  o.lanes.pick = () => ({ lane: 'api' });
+  let started = 0;
+  o.run = async tk => {
+    started++;
+    o.tickets.update(tk.id, { state: 'done' });
+  };
+  const t0 = Date.now();
+  t.mock.timers.enable({ apis: ['Date'], now: t0 });
+  try {
+    const stampOf = ms =>
+      new Intl.DateTimeFormat('sv-SE', {
+        timeZone: o.cfg.timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .format(new Date(ms))
+        .replace(' ', 'T');
+    const draftAt = (ms, pic = 'spring.png') =>
+      `Thursday post.\n\nAFTER YOUR OK\n1. ig_post({"caption": "Spring", "image": "${pic}"${ms ? `, "at": "${stampOf(ms)}"` : ''}})`;
+    const waiting = draft => {
+      const tk = o.tickets.create({ text: 'post', agent: 'mlead', dept: 'marketing', by: 'owner', needsOk: true });
+      o.tickets.update(tk.id, { state: 'waiting', draft, runs: o.runsOf(draft) });
+      return tk.id;
+    };
+    const a = waiting(draftAt(t0 + 2 * 86400000));
+    const shown = brief(o.tickets.get(a)).runs;
+    assert.ok(shown.at && shown.when, 'the in-tray says when it runs');
+    o.approve(a, draftHash(o.tickets.get(a).draft));
+    let x = o.tickets.get(a);
+    assert.equal(x.state, 'scheduled', 'booked, already approved');
+    assert.equal(x.runAt, shown.at, 'it runs at the time the owner was shown');
+    assert.equal(x.pictures['spring.png'], media.pictures['spring.png'], 'the picture is held by its content');
+    // cancelled and retried before its time: it goes back to waiting for the time, it does not run
+    o.cancel(a);
+    o.retry(a);
+    o.paused = false;
+    await o.tick();
+    assert.equal(started, 0, 'not run early');
+    assert.equal(o.tickets.get(a).state, 'scheduled');
+    // the office was off at the time and came back three hours later: nothing goes out; approving that draft again is refused
+    t.mock.timers.setTime(x.runAt + 3 * 3600000);
+    await o.tick();
+    x = o.tickets.get(a);
+    assert.equal(started, 0, 'not run late');
+    assert.equal(x.state, 'waiting');
+    assert.match(x.note, /while the office was off or paused, so nothing went out\. Send it back with a new time/);
+    assert.equal(brief(x).runs.code, 'past', 'the in-tray shows why it cannot be approved as it is');
+    assert.throws(
+      () => o.approve(a, draftHash(x.draft)),
+      e => e.code === 'past',
+    );
+    assert.equal(started, 0);
+    // sent back: the old time is no longer shown, even if a new draft lands without a fresh look (a restart mid-check)
+    o.reject(a, 'new time please');
+    assert.equal(o.tickets.get(a).runs, null);
+    const redraft = draftAt(0, 'autumn.png');
+    o.tickets.update(a, {
+      state: 'waiting',
+      draft: redraft,
+      runs: o.tickets.get(a).runs || { at: t0, when: 'old', hash: draftHash(x.draft) },
+    });
+    assert.equal(brief(o.tickets.get(a)).runs, null, 'a time worked out for another draft is never shown');
+    const o2 = new Office(o.cfg);
+    assert.deepEqual(
+      [brief(o2.tickets.get(a)).runs.at, brief(o2.tickets.get(a)).runs.held],
+      [0, true],
+      'at start it is worked out again',
+    );
+    o2.stop();
+    // a booked run that failed is no longer booked: Retry runs it on the owner's word
+    const b = waiting(draftAt(Date.now() + 86400000));
+    o.approve(b, draftHash(o.tickets.get(b).draft));
+    t.mock.timers.setTime(o.tickets.get(b).runAt);
+    o.tickets.update(b, { state: 'doing' });
+    await o.finishRun(b, 'execute', {
+      ok: false,
+      error: 'Meta was down',
+      kind: 'run',
+      cost: { usd: 0, estUsd: 0 },
+      timings: {},
+      calls: [],
+    });
+    assert.equal(o.tickets.get(b).state, 'failed');
+    assert.equal(o.tickets.get(b).runAt, 0);
+    // one sent back to wait for room on the API keeps its booking, so the late guard still holds it
+    const c = waiting(draftAt(Date.now() + 86400000));
+    o.approve(c, draftHash(o.tickets.get(c).draft));
+    const due = o.tickets.get(c).runAt;
+    t.mock.timers.setTime(due);
+    o.tickets.update(c, { state: 'doing' });
+    await o.finishRun(c, 'execute', {
+      ok: false,
+      kind: 'wait',
+      error: 'not run: the daily ceiling is reached',
+      cost: { usd: 0, estUsd: 0 },
+      timings: {},
+      calls: [],
+    });
+    assert.equal(o.tickets.get(c).state, 'next');
+    assert.equal(o.tickets.get(c).runAt, due);
+    const before = started;
+    t.mock.timers.setTime(due + 3 * 3600000);
+    o.tickets.update(c, { waitUntil: 0 });
+    await o.tick();
+    assert.equal(started, before, 'room came back three hours late: nothing goes out');
+    assert.equal(o.tickets.get(c).state, 'waiting');
+  } finally {
+    o.stop();
+  }
 });
 
 test('the execute prompt holds the approved draft and nothing planted since: no notebook, thread, notes, drop folder, comments or brief', () => {

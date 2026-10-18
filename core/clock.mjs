@@ -132,6 +132,22 @@ export function zonedTime(y, mo, d, hh, mm, tz = 'Europe/London') {
   }
   return t;
 }
+/**
+ * An office time a desk writes, 2026-10-22T18:00 or 2026-10-22 18:00 (24-hour, no zone), as an instant; 0 when it is
+ * anything else, not a real date, or a time the clocks skip (the hour they go forward), which would run an hour early.
+ */
+export function officeTime(s, tz = 'Europe/London') {
+  const m = String(s ?? '')
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!m) return 0;
+  const [y, mo, d, hh, mi] = m.slice(1).map(Number);
+  const day = new Date(Date.UTC(y, mo - 1, d));
+  if (day.getUTCMonth() !== mo - 1 || day.getUTCDate() !== d) return 0;
+  const t = zonedTime(y, mo, d, hh, mi, tz);
+  const p = zparts(t, tz);
+  return p.hour === hh && p.minute === mi ? t : 0;
+}
 /** The wall-clock date in tz for an instant: { y, m, d, wd }. */
 export function localDate(ts, tz = 'Europe/London') {
   const p = zparts(ts, tz);

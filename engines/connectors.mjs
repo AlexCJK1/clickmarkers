@@ -8,6 +8,11 @@
 //     "readOnly": ["the only tool names that run before the OK"] (instead of outbound; mail_draft, which only files a
 //       draft in the owner's own Drafts folder, is on the mailbox's list),
 //     "private": true (it reads the owner's own material: mail, files, a CRM), "web": true (it reaches the open web),
+//     "verbatim": ["message"] (after the OK, an outbound call runs only as a step writes it, these arguments the same),
+//     "waits": ["ig_post"] (tools that cannot book themselves: the office waits for the "at" their step carries),
+//     "words": ["message"] (held fields compared as the owner reads them: spacing and line breaks may differ),
+//     "files": ["image"] (held fields naming a picture in the media folders: held by its content too),
+//     "media": true (an own server that may read pictures from the media folders: it is told where they are),
 //     "verified": true|false, "notes": "" }
 // An office-owned stdio server ("own": true) reads its secrets from the secrets file itself: it is given
 // the file's path (OFFICE_SECRETS_FILE) and the office time zone (OFFICE_TZ), never the values, so no
@@ -15,14 +20,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from '../core/config.mjs';
+import { officeTime } from '../core/clock.mjs';
 import { secret, secretsSource } from '../core/secrets.mjs';
 
 const CLEAN_ENV = path.join(ROOT, 'core', 'clean-env.mjs');
 
 export class Connectors {
-  constructor(file, { timezone = 'Europe/London' } = {}) {
+  constructor(file, { timezone = 'Europe/London', mediaRoots = [] } = {}) {
     this.file = file;
     this.timezone = timezone;
+    this.mediaRoots = mediaRoots;
     this.load();
   }
   load() {
@@ -87,6 +94,7 @@ export class Connectors {
         const env = {
           ...(c.env ? fill(c.env) : {}),
           ...(c.own ? { OFFICE_SECRETS_FILE: secretsSource(), OFFICE_TZ: this.timezone } : {}),
+          ...(c.own && c.media ? { OFFICE_MEDIA_ROOTS: this.mediaRoots.join(path.delimiter) } : {}),
         };
         // {root} in an argument is this install's folder, so the registry carries no machine's own path. The server
         // starts through the clean-env launcher: it sees its own variables and the basics, never the office's keys.
@@ -275,6 +283,157 @@ export function hiddenAddress(text) {
   return '';
 }
 
+/**
+ * A value as the owner reads it, for comparing a call with the step he approved: escapes a desk writes in a call
+ * (\n, \") undone, curly quotes made straight, emoji style marks and zero-width characters dropped, and every run
+ * of white space one space. Nothing else changes: a word, a letter's case, a digit or a mark like * still counts.
+ */
+export function plainWords(text) {
+  return String(text ?? '')
+    .normalize('NFC')
+    .replace(/\\[nrt]/g, '\n')
+    .replace(/\\(["'\\])/g, '$1')
+    .replace(/[\u2018\u2019\u201B\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201F\u2033]/g, '"')
+    .replace(/\uFE0E|\uFE0F|\u200B|\u200C|\u200D|\u2060/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// A step call starts its line (after a list mark like "1." or "-", and a backtick or bold if any): a call written
+// inside a sentence ("do NOT post option B: page_post(...)") is prose, not a step.
+const CALL_AT = name =>
+  new RegExp(`^[\\t ]*(?:[-*•]|\\d+[.)])?[\\t ]*(?:\\*\\*|\`)?(?:mcp__[A-Za-z0-9_-]+__)?${name}\\s*\\(\\s*`, 'gm');
+/**
+ * The arguments of one call, read as JSON from just after its "(": one object such as {"caption": "…", "image": "…"}
+ * and then the call's ")". JSON has one reading: a quote inside a value is written \", so nothing can end a post
+ * early. Unreadable, so the step holds nothing: anything that is not one such object, a key written twice (the owner
+ * reads the first, JSON.parse keeps the last), text after the object, or a \u escape (the owner reads the code, the
+ * post would carry the character).
+ */
+function readCall(s, from) {
+  if (s[from] !== '{') return { bad: true };
+  let depth = 0;
+  let quoted = false;
+  let str = '';
+  const keys = new Set();
+  let dup = false;
+  for (let i = from; i < s.length; i++) {
+    const ch = s[i];
+    if (quoted) {
+      if (ch === '\\') {
+        if (s[i + 1] === 'u') return { bad: true };
+        str += ch + s[i + 1];
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+        // a string at the top level followed by ":" is a key
+        if (depth === 1 && /^\s*:/.test(s.slice(i + 1, i + 20))) {
+          if (keys.has(str)) dup = true;
+          keys.add(str);
+        }
+      } else str += ch;
+    } else if (ch === '"') {
+      quoted = true;
+      str = '';
+    } else if (ch === '{' || ch === '[') depth++;
+    else if (ch === '}' || ch === ']') {
+      depth--;
+      if (!depth) {
+        if (dup || !/^\s*\)/.test(s.slice(i + 1, i + 40))) return { bad: true };
+        try {
+          const args = JSON.parse(s.slice(from, i + 1));
+          return args && typeof args === 'object' && !Array.isArray(args) ? { args } : { bad: true };
+        } catch {
+          return { bad: true };
+        }
+      }
+    }
+  }
+  return { bad: true };
+}
+/**
+ * The calls to a tool written in the approved steps, each as { args } read as JSON, or { bad: true } when its
+ * arguments are not one JSON object: page_post({"message": "…", "image": "…"}), or with the full tool name.
+ */
+export function stepCalls(steps, name) {
+  const s = String(steps ?? '');
+  const n = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!n) return [];
+  return [...s.matchAll(CALL_AT(n))].map(m => readCall(s, m.index + m[0].length));
+}
+/**
+ * After the OK, an outbound call to a connector that holds its arguments ("verbatim": the words of a post, its
+ * picture, its link, its time) must be one of the calls the approved steps write for that tool, with each held
+ * argument present or absent alike and the same: exactly, or, for the fields in `words` (a post's text), the same as
+ * the owner reads it (plainWords). A held value that is not a string, or a step whose arguments cannot be read,
+ * matches nothing. The same call written twice is one call, and each runs once: `used` holds what has run.
+ * Returns { key } of the step it matches, or { field } that differs from the nearest unused one ('call' if none).
+ */
+export function heldCall({ name, input = {}, fields = [], words = [], steps = '', used = new Set() }) {
+  const val = (f, v) => (v == null ? '' : words.includes(f) ? plainWords(v) : v);
+  const plain = v => v == null || typeof v === 'string';
+  let field = '';
+  for (const c of stepCalls(steps, name)) {
+    if (c.bad || fields.some(f => !plain(c.args[f]))) {
+      field ||= 'arguments (the step does not write them as one JSON object of plain values)';
+      continue;
+    }
+    const key = JSON.stringify(fields.map(f => val(f, c.args[f])));
+    if (used.has(key)) continue;
+    const off = fields.find(f => !plain(input?.[f]) || val(f, input?.[f]) !== val(f, c.args[f]));
+    if (!off) return { key };
+    field ||= off;
+  }
+  return { field: field || 'call' };
+}
+/**
+ * The time in a draft's posting steps: every "at" of a tool on a connector that holds its arguments. Returns { time }
+ * (0: none), waits (a tool in the connector's "waits" list, which cannot book itself, carries it: the office must
+ * wait for it), held (the steps post through such a connector), images (the local pictures the steps name, for
+ * their "files" fields); or { error } when a step cannot be read, a time is not a real office time, or two steps
+ * ask for two times (one could go out and the other not).
+ */
+export function bookingOf(steps, connectors, tz = 'Europe/London') {
+  const times = new Set();
+  const images = new Set();
+  let held = false;
+  let waits = false;
+  let untimed = false;
+  for (const k of connectors.keys()) {
+    const c = connectors.get(k);
+    if (!c?.verbatim?.length) continue;
+    for (const tool of c.outbound || []) {
+      for (const call of stepCalls(steps, tool)) {
+        held = true;
+        if (call.bad) return { error: `a ${tool} step does not write its arguments as one JSON object` };
+        for (const f of c.files || [])
+          if (call.args[f] != null && call.args[f] !== '') {
+            if (typeof call.args[f] !== 'string') return { error: `a ${tool} step's ${f} is not a plain text` };
+            images.add(call.args[f]);
+          }
+        const at = call.args.at;
+        if (at == null || at === '') {
+          untimed = true;
+          continue;
+        }
+        const t = typeof at === 'string' ? officeTime(at, tz) : 0;
+        if (!t)
+          return {
+            error: `${tool}'s time ${JSON.stringify(at).slice(0, 40)} is not a time it can read; write "at": "2026-10-22T18:00" (office time)`,
+          };
+        times.add(t);
+        if ((c.waits || []).includes(tool)) waits = true;
+      }
+    }
+  }
+  if (times.size > 1) return { error: 'the steps ask for more than one time; one time per draft' };
+  // one post with a time and another without would go out at two times, and the owner is shown only one
+  if (times.size && untimed)
+    return { error: 'one posting step has a time and another has none; give them the same time' };
+  return { time: [...times][0] || 0, waits, held, images: [...images] };
+}
+
 /** Words in a tool's name that mean it sends or changes something, as a whole segment (create_file, send-email). */
 export const WRITE_WORDS =
   /(^|[_\-.])(create|update|delete|remove|send|post|publish|upload|move|copy|share|edit|write|insert|append|set|pause|activate|deactivate|import|revoke|schedule|boost|add|apply|cancel|archive|trash|merge|rename|replace|run|execute|evaluate|fill|click|type|press|drag|select|drop|grant|invite|transfer|pay|charge|refund|submit|approve|reject|reply|forward|label|mark|restore|clear|reset|install|deploy|purge|use|enable|disable|connect|disconnect|duplicate|rotate|verify|manage|generate|resize|buy|purchase|order|lock|unlock|untrash|unlabel|unmark|batch|book|sign|withdraw|deposit|trigger|toggle|patch|launch|push|close|start|stop|notify|invoke|restart|kill|terminate|commit|enqueue|dispatch|emit|broadcast)([_\-.]|$)/i;
@@ -323,7 +482,11 @@ export function registryDrift(ownerFile, repoFile) {
     repo = read(repoFile);
   if (!mine || !repo || path.resolve(ownerFile) === path.resolve(repoFile)) return { added: [], changed: [] };
   const shape = c =>
-    JSON.stringify(['url', 'command', 'args', 'readOnly', 'outbound', 'only'].map(k => c?.[k] ?? null));
+    JSON.stringify(
+      ['url', 'command', 'args', 'readOnly', 'outbound', 'only', 'verbatim', 'waits', 'words', 'files'].map(
+        k => c?.[k] ?? null,
+      ),
+    );
   const added = Object.keys(repo).filter(k => !(k in mine));
   const changed = Object.keys(repo).filter(k => k in mine && shape(mine[k]) !== shape(repo[k]));
   return { added, changed };
