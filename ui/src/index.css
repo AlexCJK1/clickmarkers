@@ -1101,20 +1101,69 @@ button.stat:hover {
   white-space: nowrap;
   flex: 1;
 }
-.conn-ok {
-  display: inline-flex;
+.conn-icons {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  color: var(--nw-t2);
-  flex: none;
-}
-.conn-ok svg {
-  color: var(--nw-good);
-}
-.conn-names {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 2px;
+  flex: 0 1 auto;
   min-width: 0;
+  overflow: hidden;
+  margin: 0 0 0 -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--nw-t2);
+  cursor: pointer;
+}
+.conn-ic {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.conn-ic[data-level='warn'],
+.conn-ic[data-level='serious'] {
+  color: var(--nw-t1);
+}
+.conn-ic:hover {
+  color: var(--nw-t1);
+  background: var(--nw-bg3);
+}
+.conn-dot {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nw-t3);
+  box-shadow: 0 0 0 2px var(--nw-bg1);
+}
+.conn-ic:hover .conn-dot {
+  box-shadow: 0 0 0 2px var(--nw-bg3);
+}
+.conn-ic[data-level='good'] .conn-dot {
+  background: var(--nw-good);
+}
+.conn-ic[data-level='warn'] .conn-dot {
+  background: var(--nw-warn);
+}
+.conn-ic[data-level='serious'] .conn-dot {
+  background: var(--nw-serious);
+}
+.conn-mono {
+  font: 600 11px/1 var(--font-ui);
+}
+.conn-more {
+  font: 500 11px/1 var(--font-ui);
+  color: var(--nw-t2);
 }
 .floor-dead {
   position: absolute;
@@ -2730,12 +2779,6 @@ span.stat:focus-visible {
   font: 500 12px/16px var(--font-ui);
   color: var(--nw-t2);
   flex: none;
-}
-.conn-name {
-  border-radius: 3px;
-}
-.conn-name:hover {
-  color: var(--nw-t1);
 }
 .conn-tag {
   display: inline-flex;
