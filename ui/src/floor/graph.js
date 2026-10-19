@@ -2,8 +2,9 @@
 // each lead's desks fan out behind. A pod is a graphite puck under a frosted dome, neutral when idle; its
 // ring turns teal only while the desk works or is in hand, amber-yellow when a draft waits for the owner,
 // red when its last job failed, and goes dark when the desk is paused. Every state is also a word on the
-// desk's label, so colour is never the only sign. Nothing moves unless something happened: the scene is
-// drawn on demand (a camera glide, a drag, a ticket travelling a link), and with reduced motion the
+// desk's label, so colour is never the only sign. Apart from a faint sweep that
+// turns round the table while the office is quiet (floor/sweep.js), nothing moves unless something
+// happened: the scene is drawn on demand (a camera glide, a drag, a ticket travelling a link), and with reduced motion the
 // glides jump and the travelling light becomes a short highlight of the route.
 // Labels are real buttons over the canvas, placed after each draw with collisions avoided by priority.
 import {
@@ -27,6 +28,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { T, hex } from '../lib/tokens.js';
+import { beamAt, glintOf } from './sweep.js';
 
 const LS = 'cm:layout:v1'; // where each pod sits, remembered in this browser
 const SVG = {
@@ -67,6 +69,35 @@ export function layoutDesks(desks, departments, { R = 11, fan = 5.6 } = {}) {
   return pos;
 }
 
+// The idle sweep's beam, drawn once on a canvas: a bright leading edge with a trail fading behind it,
+// kept off the hub and inside the bezel.
+function sweepTexture(color, trail = 1.1, size = 512) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const n = hex(color);
+  const rgb = `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+  const h = size / 2;
+  const f = trail / (Math.PI * 2);
+  const cg = g.createConicGradient(0, h, h);
+  cg.addColorStop(0, `rgba(${rgb},0.16)`);
+  cg.addColorStop(f * 0.35, `rgba(${rgb},0.06)`);
+  cg.addColorStop(f, `rgba(${rgb},0)`);
+  cg.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = cg;
+  g.fillRect(0, 0, size, size);
+  g.globalCompositeOperation = 'destination-in';
+  const rg = g.createRadialGradient(h, h, 0, h, h, h);
+  rg.addColorStop(0, 'rgba(0,0,0,0)');
+  rg.addColorStop(0.22, 'rgba(0,0,0,1)');
+  rg.addColorStop(0.97, 'rgba(0,0,0,1)');
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, size, size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 export function createFloor(
   { host, labels },
   { onSelect = () => {}, onHover = () => {}, onDead = () => {}, reduced = () => false, phone = false } = {},
@@ -169,7 +200,38 @@ export function createFloor(
     ]),
   );
   const haloGeo = new THREE.PlaneGeometry(1, 1);
-
+  // the idle sweep: a faint beam of the pool's light turns round the table, so a quiet office still reads
+  // as switched on. A pod glints as the beam passes, a lead's glint runs out along its links, and the hub
+  // breathes. It is never the teal of work and never a ticket; it stops with reduced motion, and a hidden
+  // tab draws nothing.
+  const sweep = new THREE.Mesh(
+    new THREE.PlaneGeometry(44.4, 44.4),
+    new THREE.MeshBasicMaterial({
+      map: sweepTexture(T.pool),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+    }),
+  );
+  sweep.rotation.x = -Math.PI / 2;
+  sweep.position.y = 0.015;
+  sweep.raycast = () => {};
+  sweep.visible = false;
+  scene.add(sweep);
+  const glintTex = radialTexture([
+    [0, T.pool, 0.32],
+    [0.35, T.pool, 0.1],
+    [1, T.pool, 0],
+  ]);
+  const glintMat = new THREE.MeshBasicMaterial({
+    map: glintTex,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  const runs = [];
   const camera = new THREE.PerspectiveCamera(phone ? 34 : 30, W / H, 0.5, 1000);
   camera.position.set(phone ? 0 : 4, phone ? 30 : 27, phone ? 26 : 31);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -645,6 +707,54 @@ export function createFloor(
     return pulses.length > 0;
   }
 
+  function ambient(now) {
+    const on = !reduced() && Object.keys(nodes).length > 0;
+    sweep.visible = on;
+    if (!on) {
+      for (const r of runs.splice(0)) scene.remove(r.glow);
+      return false;
+    }
+    const beam = beamAt(now);
+    sweep.rotation.z = beam;
+    for (const n of Object.values(nodes)) {
+      if (n.status !== 'idle' || n.away || n.id === state.selected || n.id === state.hovered) {
+        n.swept = false;
+        continue;
+      }
+      const p = n.group.position;
+      const g = n.kind === 'chief' ? 0.55 + Math.sin(now / 1100) * 0.2 : glintOf(beam, p.x, p.z);
+      if (n.kind === 'lead') {
+        if (g > 0.85 && !n.swept) {
+          n.swept = true;
+          for (const l of links) {
+            if (l.from !== n || l.to.status !== 'idle') continue;
+            const glow = new THREE.Mesh(haloGeo, glintMat);
+            glow.rotation.x = -Math.PI / 2;
+            glow.raycast = () => {};
+            scene.add(glow);
+            runs.push({ a: p.clone(), b: l.to.group.position.clone(), glow, t0: now, ms: 900 });
+          }
+        } else if (g === 0) n.swept = false;
+      }
+      if (g > 0.02) {
+        n.halo.material = glintMat;
+        n.halo.scale.setScalar(SIZE[n.kind] * 6 * g);
+        n.halo.visible = true;
+      } else if (n.halo.material === glintMat) n.halo.visible = false;
+    }
+    for (let i = runs.length - 1; i >= 0; i--) {
+      const r = runs[i];
+      const k = (now - r.t0) / r.ms;
+      if (k >= 1 || k < 0) {
+        scene.remove(r.glow);
+        runs.splice(i, 1);
+        continue;
+      }
+      r.glow.position.lerpVectors(r.a, r.b, k).setY(0.03);
+      r.glow.scale.setScalar(1.8 * Math.sin(k * Math.PI));
+    }
+    return true;
+  }
   /* ---------- picking and dragging ---------- */
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -805,9 +915,18 @@ export function createFloor(
   /* ---------- drawing on demand ---------- */
   let raf = 0,
     alive = true,
-    frames = 0;
+    frames = 0,
+    quiet = false,
+    idleT = 0;
   function frame() {
+    quiet = false;
     if (alive && !raf) raf = requestAnimationFrame(tick);
+  }
+  // a frame only the sweep or a breathing halo asks for: nothing that casts a shadow has moved
+  function idleFrame() {
+    if (raf) return;
+    frame();
+    quiet = true;
   }
   function tick(now) {
     raf = 0;
@@ -817,11 +936,21 @@ export function createFloor(
     else controls.update();
     more = stepPulses(now) || more;
     const breathing = breathe(now);
+    const idle = ambient(now);
+    renderer.shadowMap.autoUpdate = !quiet;
+    quiet = false;
     renderer.render(scene, camera);
     placeLabels();
     labels.dataset.frames = String(++frames); // how many draws so far: a check or a screenshot can wait for the next one
     if (more) frame();
-    else if (breathing) setTimeout(frame, 48);
+    else if ((breathing || idle) && !idleT)
+      idleT = setTimeout(
+        () => {
+          idleT = 0;
+          idleFrame();
+        },
+        breathing ? 48 : 40,
+      );
   }
   function resize() {
     W = Math.max(1, host.clientWidth);
@@ -877,10 +1006,12 @@ export function createFloor(
     },
     setReduced(on) {
       controls.enableDamping = !on;
+      frame();
     },
     dispose() {
       alive = false;
       cancelAnimationFrame(raf);
+      clearTimeout(idleT);
       ro.disconnect();
       controls.dispose();
       el.removeEventListener('pointerdown', onDown);
@@ -892,6 +1023,8 @@ export function createFloor(
       clear();
       disposeScene(scene);
       for (const t of Object.values(halo)) t.dispose();
+      glintTex.dispose();
+      sweep.material.map.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       el.remove();
