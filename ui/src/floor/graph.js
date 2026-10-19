@@ -88,10 +88,10 @@ function sweepTexture(color, trail = 1.1, size = 512) {
   g.fillRect(0, 0, size, size);
   g.globalCompositeOperation = 'destination-in';
   const rg = g.createRadialGradient(h, h, 0, h, h, h);
-  rg.addColorStop(0, 'rgba(0,0,0,0)');
-  rg.addColorStop(0.22, 'rgba(0,0,0,1)');
-  rg.addColorStop(0.97, 'rgba(0,0,0,1)');
-  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  rg.addColorStop(0, `rgba(${rgb},0)`);
+  rg.addColorStop(0.22, `rgba(${rgb},1)`);
+  rg.addColorStop(0.97, `rgba(${rgb},1)`);
+  rg.addColorStop(1, `rgba(${rgb},0)`);
   g.fillStyle = rg;
   g.fillRect(0, 0, size, size);
   const t = new THREE.CanvasTexture(c);
