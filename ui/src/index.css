@@ -1161,6 +1161,12 @@ button.stat:hover {
 .conn-mono {
   font: 600 11px/1 var(--font-ui);
 }
+.conn-sheet-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
 .conn-more {
   font: 500 11px/1 var(--font-ui);
   color: var(--nw-t2);

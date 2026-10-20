@@ -13,6 +13,7 @@ import { parseWhen, parseAt, fmtAt } from '../core/when.mjs';
 import { callDirect } from '../engines/mcpcall.mjs';
 import { buildGraph, readNote } from '../brain/graph.mjs';
 import { secret } from '../core/secrets.mjs';
+import { openSignIn } from './mcp-signin.mjs';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -207,6 +208,12 @@ export function serve(office) {
         const keys =
           b.keys === 'used' ? office.usedConnectors() : Array.isArray(b.keys) ? b.keys : office.usedConnectors();
         return json(res, 200, await office.connectorHealth.probe(keys));
+      }
+      const signIn = p.match(/^\/api\/connectors\/([a-z0-9-]+)\/sign-in$/);
+      if (signIn && m === 'POST') {
+        const c = office.connectors.get(signIn[1]);
+        const r = openSignIn(c && { ...c, key: signIn[1] });
+        return json(res, r.error ? 400 : 200, r);
       }
       if (p === '/api/stats') return json(res, 200, office.vault.stats(cfg.stats?.file) || { error: 'no stats file' });
       if (p === '/api/ledger/series') {

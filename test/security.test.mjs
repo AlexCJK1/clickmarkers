@@ -1785,3 +1785,40 @@ test('the safety lines in every desk prompt do not depend on the house style', (
   }
   o.stop();
 });
+
+test('a connector sign-in opens only a registry OAuth connector with a plain key and an https address, and nothing else reaches the script', async () => {
+  const { signInScript, openSignIn } = await import('../io/mcp-signin.mjs');
+  const good = { key: 'windsor', auth: 'oauth', type: 'http', url: 'https://mcp.windsor.ai/' };
+  const win = signInScript(good, { platform: 'win32' });
+  assert.ok(!win.error);
+  assert.match(win.text, /call claude mcp login windsor\r\n/);
+  assert.match(win.text, /claude mcp add --transport http windsor https:\/\/mcp\.windsor\.ai\/ -s user/);
+  assert.equal(signInScript(null).error, 'no such connector');
+  assert.ok(signInScript({ ...good, auth: 'bearer' }).error);
+  for (const key of ['x&calc', 'X', '../a', 'a b', 'a"b', '']) assert.ok(signInScript({ ...good, key }).error, key);
+  for (const url of [
+    'http://mcp.windsor.ai/',
+    'https://a.b/&calc',
+    'https://a.b/%PATH%',
+    'https://a.b/x?y=1',
+    'https://a.b/"x',
+    'file:///c:/x',
+  ])
+    assert.ok(signInScript({ ...good, url }).error, url);
+  // opening: the script lands in the temp folder under the key's name, and the desktop shell opens that file only
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cm-signin-'));
+  const calls = [];
+  const run = (cmd, args) => {
+    calls.push([cmd, args]);
+    return { unref() {} };
+  };
+  assert.deepEqual(openSignIn(good, { tmp, platform: 'win32', run }), { ok: true, opened: 'windsor' });
+  const file = path.join(tmp, 'clickmarkers-signin-windsor.cmd');
+  assert.deepEqual(calls, [['explorer.exe', [file]]]);
+  assert.ok(fs.existsSync(file));
+  assert.ok(openSignIn({ ...good, key: 'x&calc' }, { tmp, platform: 'win32', run }).error);
+  assert.equal(calls.length, 1);
+  assert.match(openSignIn(good, { tmp, platform: 'linux', run }).error, /sh .*clickmarkers-signin-windsor\.sh/);
+  assert.equal(calls.length, 1);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});

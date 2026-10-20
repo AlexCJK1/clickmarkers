@@ -345,6 +345,7 @@ export const actions = {
   brainGraph: (refresh = false) => api(`/api/brain/graph${refresh ? '?refresh=1' : ''}`),
   brainNote: rel => api(`/api/brain/note?rel=${encodeURIComponent(rel)}`),
   // resolves to { error } when the office refuses or does not answer, so the button can say so
+  signInConnector: key => api(`/api/connectors/${encodeURIComponent(key)}/sign-in`, {}),
   checkConnectors: async () => {
     set({ probing: true });
     try {

@@ -188,7 +188,56 @@ function ConnGlyph({ c }) {
     </span>
   );
 }
-function Details({ used, check, onClose }) {
+function ConnRow({ c, signIn }) {
+  const [say, setSay] = useState('');
+  const [busy, setBusy] = useState(false);
+  const canSign = c.auth === 'oauth' && c.status === 'needs-auth' && signIn;
+  const go = async () => {
+    setBusy(true);
+    setSay('');
+    const r = await signIn(c.key).catch(e => ({ error: e.message }));
+    setBusy(false);
+    setSay(
+      r?.error
+        ? `Not opened. ${plain(r.error)}`
+        : 'A sign-in window opened on the computer running the office. Log in in the browser, press Allow, then Check now.',
+    );
+  };
+  return (
+    <li>
+      <div className="conn-sheet-top">
+        <b>{c.label}</b>
+        <span className="conn-sheet-act">
+          {canSign && (
+            <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={go}>
+              <Icon name="key" size={14} />
+              Sign in
+            </button>
+          )}
+          <Tag level={level(c)}>{word(c)}</Tag>
+        </span>
+      </div>
+      <div className="meta t2">
+        {[
+          c.health?.tools && `${c.health.tools} tools`,
+          c.health?.ms && `started in ${(c.health.ms / 1000).toFixed(1)} s`,
+          c.health?.at && `checked ${ago(c.health.at)}`,
+        ]
+          .filter(Boolean)
+          .join(' \u00b7 ') || 'No check on record'}
+      </div>
+      {c.health?.note && <div className="meta t2">{c.health.note}</div>}
+      <div className="meta t3">Used by {c.desks.join(', ')}</div>
+      {say && (
+        <div className="meta t2" role="status">
+          {say}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function Details({ used, check, signIn, onClose }) {
   const order = { failed: 0, absent: 0, missing: 1, 'needs-auth': 1, unchecked: 2, off: 3, connected: 4 };
   const rows = [...used].sort(
     (x, y) => (order[x.status] ?? 2) - (order[y.status] ?? 2) || x.label.localeCompare(y.label),
@@ -203,29 +252,12 @@ function Details({ used, check, onClose }) {
     >
       <ul className="conn-sheet">
         {rows.map(c => (
-          <li key={c.key}>
-            <div className="conn-sheet-top">
-              <b>{c.label}</b>
-              <Tag level={level(c)}>{word(c)}</Tag>
-            </div>
-            <div className="meta t2">
-              {[
-                c.health?.tools && `${c.health.tools} tools`,
-                c.health?.ms && `started in ${(c.health.ms / 1000).toFixed(1)} s`,
-                c.health?.at && `checked ${ago(c.health.at)}`,
-              ]
-                .filter(Boolean)
-                .join(' · ') || 'No check on record'}
-            </div>
-            {c.health?.note && <div className="meta t2">{c.health.note}</div>}
-            <div className="meta t3">Used by {c.desks.join(', ')}</div>
-          </li>
+          <ConnRow key={c.key} c={c} signIn={signIn} />
         ))}
       </ul>
     </Modal>
   );
 }
-
 // How many glyphs fit the room the bar leaves them; the rest fold into a "+N" whose tip lists them.
 function useFit(ref, total) {
   const [fit, setFit] = useState(total);
@@ -275,6 +307,7 @@ export default function ConnectorStrip({ phone = false }) {
   const sheet = open && (
     <Details
       used={used}
+      signIn={a.signInConnector}
       check={
         <>
           {errLine}
