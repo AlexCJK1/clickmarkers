@@ -228,7 +228,7 @@ function ConnRow({ c, signIn }) {
       </div>
       {c.health?.note && <div className="meta t2">{c.health.note}</div>}
       <div className="meta t3">Used by {c.desks.join(', ')}</div>
-      {say && (
+      {say && c.status !== 'connected' && (
         <div className="meta t2" role="status">
           {say}
         </div>

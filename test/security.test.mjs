@@ -1792,6 +1792,12 @@ test('a connector sign-in opens only a registry OAuth connector with a plain key
   const win = signInScript(good, { platform: 'win32' });
   assert.ok(!win.error);
   assert.match(win.text, /call claude mcp login windsor\r\n/);
+  // a connector already signed in is left alone: a second login would start over and drop the first
+  assert.ok(win.text.indexOf('findstr /C:"Connected"') < win.text.indexOf('claude mcp login windsor'));
+  assert.match(
+    signInScript(good, { platform: 'linux' }).text,
+    /grep -q Connected; then echo "Already signed in."; else/,
+  );
   assert.match(win.text, /claude mcp add --transport http windsor https:\/\/mcp\.windsor\.ai\/ -s user/);
   assert.equal(signInScript(null).error, 'no such connector');
   assert.ok(signInScript({ ...good, auth: 'bearer' }).error);
